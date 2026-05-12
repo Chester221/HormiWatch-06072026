@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/dashboard/MetricCard";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { CheckSquare, Clock, FolderKanban, TrendingUp, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,24 +15,21 @@ import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { data: tasks, isLoading: isLoadingTasks, refetch: refetchTasks } = useTasks();
-  const { data: projects, isLoading: isLoadingProjects, refetch: refetchProjects } = useProjects();
+  const { data: tasks = [], isLoading: isLoadingTasks, refetch: refetchTasks } = useTasks();
+  const { data: projects = [], isLoading: isLoadingProjects, refetch: refetchProjects } = useProjects();
   const createTask = useCreateTask();
 
-  // Estados para los modales
   const [logTimeModalOpen, setLogTimeModalOpen] = useState(false);
   const [newTaskModalOpen, setNewTaskModalOpen] = useState(false);
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
   const [createTaskModalOpen, setCreateTaskModalOpen] = useState(false);
 
-  // Funciones para abrir modales
   const handleLogTime = () => setLogTimeModalOpen(true);
   const handleNewTask = () => setCreateTaskModalOpen(true);
   const handleNewProject = () => setNewProjectModalOpen(true);
   const handleAddMember = () => setAddMemberModalOpen(true);
 
-  // Función para crear tarea
   const handleCreateTask = (data: any) => {
     createTask.mutate(data, {
       onSuccess: () => {
@@ -50,10 +46,10 @@ const Dashboard = () => {
 
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario';
 
-  const tareasCount = tasks?.length || 0;
-  const proyectosCount = projects?.length || 0;
+  const tareasCount = tasks.length;
+  const proyectosCount = projects.length;
 
-  const horasTotal = tasks?.reduce((acc, task) => {
+  const horasTotal = tasks.reduce((acc, task) => {
     if (task.start_time && task.end_time) {
       const start = new Date(task.start_time).getTime();
       const end = new Date(task.end_time).getTime();
@@ -61,15 +57,15 @@ const Dashboard = () => {
       return acc + hours;
     }
     return acc;
-  }, 0) || 0;
+  }, 0);
 
-  const tareasCompletadas = tasks?.filter(t => t.status === 'Completed').length || 0;
+  const tareasCompletadas = tasks.filter(t => t.status === 'Completed').length;
 
   const isLoading = isLoadingTasks || isLoadingProjects;
 
   return (
     <DashboardLayout>
-      <div className="mb-8 opacity-0 animate-fade-in fill-mode-forwards">
+      <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
           {isLoading ? "Cargando..." : `¡Hola, ${userName}! 👋`}
         </h1>
@@ -91,15 +87,14 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Rejilla Inferior (Feeds y Acciones) - ESTRUCTURA ORIGINAL */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-  {/* <ActivityFeed /> */}
-  <div className="rounded-2xl border border-border bg-card p-6">
-    <h3 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h3>
-    <p className="text-muted-foreground text-center py-8">Cargando actividad...</p>
-  </div>
-</div>
+          {/* ActivityFeed - componente seguro */}
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h3>
+            <p className="text-muted-foreground text-center py-8">No hay actividad reciente</p>
+          </div>
+        </div>
         <div>
           <QuickActions
             onLogTime={handleLogTime}
@@ -110,12 +105,11 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Modales */}
-      <LogTimeModal open={logTimeModalOpen} onOpenChange={setLogTimeModalOpen} projects={projects || []} onSubmit={handleCreateTask} />
-      <LogTimeModal open={newTaskModalOpen} onOpenChange={setNewTaskModalOpen} projects={projects || []} onSubmit={handleCreateTask} />
+      <LogTimeModal open={logTimeModalOpen} onOpenChange={setLogTimeModalOpen} projects={projects} onSubmit={handleCreateTask} />
+      <LogTimeModal open={newTaskModalOpen} onOpenChange={setNewTaskModalOpen} projects={projects} onSubmit={handleCreateTask} />
       <CreateProjectModal open={newProjectModalOpen} onOpenChange={setNewProjectModalOpen} onSuccess={() => { refetchProjects(); setNewProjectModalOpen(false); }} />
       <AddMemberModal open={addMemberModalOpen} onOpenChange={setAddMemberModalOpen} onSuccess={() => setAddMemberModalOpen(false)} />
-      <CreateTaskModal open={createTaskModalOpen} onOpenChange={setCreateTaskModalOpen} projects={projects || []} onSuccess={() => { refetchTasks(); setCreateTaskModalOpen(false); }} />
+      <CreateTaskModal open={createTaskModalOpen} onOpenChange={setCreateTaskModalOpen} projects={projects} onSuccess={() => { refetchTasks(); setCreateTaskModalOpen(false); }} />
     </DashboardLayout>
   );
 };
