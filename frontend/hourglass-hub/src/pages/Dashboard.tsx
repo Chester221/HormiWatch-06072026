@@ -94,8 +94,12 @@ const Dashboard = () => {
       {/* Rejilla Inferior (Feeds y Acciones) - ESTRUCTURA ORIGINAL */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <ActivityFeed />
-        </div>
+  {/* <ActivityFeed /> */}
+  <div className="rounded-2xl border border-border bg-card p-6">
+    <h3 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h3>
+    <p className="text-muted-foreground text-center py-8">Cargando actividad...</p>
+  </div>
+</div>
         <div>
           <QuickActions
             onLogTime={handleLogTime}

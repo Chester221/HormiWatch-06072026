@@ -14,13 +14,17 @@ export const useProjects = () => {
   return useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw new Error(error.message);
-      return data as Project[];
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) return [];
+        return data || [];
+      } catch {
+        return [];
+      }
     },
   });
 };
