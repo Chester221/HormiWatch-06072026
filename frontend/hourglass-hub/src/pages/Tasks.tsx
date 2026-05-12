@@ -52,7 +52,8 @@ const Tasks = () => {
   // --- Data Fetching con Hooks de Supabase ---
   const { user } = useAuth();
   const { data: projectsList, isLoading: isLoadingProjects } = useProjects();
-  const { data: servicesList } = useServices();
+  const { data: servicesList = [] } = useServices();
+
   const { holidays } = useHolidays();
   const { data: tasksData, isLoading: isLoadingTasks, refetch: refetchTasks } = useTasks(projectFilter);
 

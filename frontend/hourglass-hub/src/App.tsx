@@ -15,7 +15,7 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Holidays from "./pages/Holidays";
-import Reports from "./pages/Reports";
+//import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -113,11 +113,12 @@ const App = () => (
                   <Holidays />
                 </ProtectedRoute>
               } />
-              <Route path="/reports" element={
+              {/* <Route path="/reports" element={
                 <ProtectedRoute>
                   <Reports />
                 </ProtectedRoute>
               } />
+ */}
 
               {/* Ruta 404 */}
               <Route path="*" element={<NotFound />} />
