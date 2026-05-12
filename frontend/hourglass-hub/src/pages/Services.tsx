@@ -42,7 +42,12 @@ export default function Services() {
   });
 
   // Obtener servicios desde Supabase
-  const { data: services = [], isLoading, refetch } = useServices(searchQuery);
+  const servicesQuery = useServices(searchQuery);
+const services = servicesQuery.data || [];
+const isLoading = servicesQuery.isLoading;
+const refetch = servicesQuery.refetch;
+
+console.log("🔍 Servicios query:", servicesQuery);
   const deleteServiceMutation = useDeleteService();
 
   const handleEdit = (service: Service) => {
