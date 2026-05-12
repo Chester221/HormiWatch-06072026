@@ -112,8 +112,9 @@ const handleAddMember = () => setAddMemberModalOpen(true);
       <LogTimeModal open={newTaskModalOpen} onOpenChange={setNewTaskModalOpen} projects={projects || []} onSubmit={handleCreateTask} />
       <CreateProjectModal open={newProjectModalOpen} onOpenChange={setNewProjectModalOpen} onSuccess={() => { refetchProjects(); setNewProjectModalOpen(false); }} />
       <AddMemberModal open={addMemberModalOpen} onOpenChange={setAddMemberModalOpen} onSuccess={() => setAddMemberModalOpen(false)} />
-      <CreateTaskModal open={createTaskModalOpen} onOpenChange={setCreateTaskModalOpen} projects={projects || []} services={services || []} onSuccess={() => { refetchTasks(); setCreateTaskModalOpen(false); }} />
-    </DashboardLayout>
+<CreateTaskModal open={createTaskModalOpen} onOpenChange={setCreateTaskModalOpen} projects={projects || []} onSuccess={() => { refetchTasks(); setCreateTaskModalOpen(false); }} />    
+      
+</DashboardLayout>
   );
 };
 
