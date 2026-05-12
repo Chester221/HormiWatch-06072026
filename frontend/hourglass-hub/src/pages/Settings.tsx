@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,15 +9,78 @@ import {
     Bell,
     Moon,
     Sun,
-    Globe,
     Shield,
     Trash2,
     Info
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export default function Settings() {
     const { user, profile, isManager } = useAuth();
+
+    // Estados de configuración
+    const [darkMode, setDarkMode] = useState(false);
+    const [emailNotifications, setEmailNotifications] = useState(true);
+    const [taskReminders, setTaskReminders] = useState(true);
+    const [weeklySummary, setWeeklySummary] = useState(false);
+
+    // Cargar preferencias guardadas
+    useEffect(() => {
+        const savedDarkMode = localStorage.getItem("darkMode") === "true";
+        const savedEmailNotif = localStorage.getItem("emailNotifications") !== "false";
+        const savedTaskReminders = localStorage.getItem("taskReminders") !== "false";
+        const savedWeeklySummary = localStorage.getItem("weeklySummary") === "true";
+
+        setDarkMode(savedDarkMode);
+        setEmailNotifications(savedEmailNotif);
+        setTaskReminders(savedTaskReminders);
+        setWeeklySummary(savedWeeklySummary);
+
+        // Aplicar dark mode
+        if (savedDarkMode) {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
+    }, []);
+
+    // Handlers
+    const handleDarkModeToggle = (checked: boolean) => {
+        setDarkMode(checked);
+        localStorage.setItem("darkMode", String(checked));
+        if (checked) {
+            document.documentElement.classList.add("dark");
+            toast.success("Modo oscuro activado");
+        } else {
+            document.documentElement.classList.remove("dark");
+            toast.success("Modo claro activado");
+        }
+    };
+
+    const handleEmailNotificationsToggle = (checked: boolean) => {
+        setEmailNotifications(checked);
+        localStorage.setItem("emailNotifications", String(checked));
+        toast.success(checked ? "Notificaciones por email activadas" : "Notificaciones por email desactivadas");
+    };
+
+    const handleTaskRemindersToggle = (checked: boolean) => {
+        setTaskReminders(checked);
+        localStorage.setItem("taskReminders", String(checked));
+        toast.success(checked ? "Recordatorios de tareas activados" : "Recordatorios de tareas desactivados");
+    };
+
+    const handleWeeklySummaryToggle = (checked: boolean) => {
+        setWeeklySummary(checked);
+        localStorage.setItem("weeklySummary", String(checked));
+        toast.success(checked ? "Resumen semanal activado" : "Resumen semanal desactivado");
+    };
+
+    const handleDeleteAccount = () => {
+        if (confirm("¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.")) {
+            toast.error("Eliminación de cuenta no implementada aún");
+        }
+    };
 
     return (
         <DashboardLayout>
@@ -51,7 +115,7 @@ export default function Settings() {
                                     </p>
                                 </div>
                             </div>
-                            <Switch defaultChecked />
+                            <Switch checked={darkMode} onCheckedChange={handleDarkModeToggle} />
                         </div>
                     </CardContent>
                 </Card>
@@ -75,7 +139,7 @@ export default function Settings() {
                                     Recibe actualizaciones de proyectos y tareas
                                 </p>
                             </div>
-                            <Switch defaultChecked />
+                            <Switch checked={emailNotifications} onCheckedChange={handleEmailNotificationsToggle} />
                         </div>
 
                         <Separator />
@@ -87,7 +151,7 @@ export default function Settings() {
                                     Notificaciones para tareas próximas a vencer
                                 </p>
                             </div>
-                            <Switch defaultChecked />
+                            <Switch checked={taskReminders} onCheckedChange={handleTaskRemindersToggle} />
                         </div>
 
                         <Separator />
@@ -99,7 +163,7 @@ export default function Settings() {
                                     Recibe un resumen de tu productividad cada semana
                                 </p>
                             </div>
-                            <Switch />
+                            <Switch checked={weeklySummary} onCheckedChange={handleWeeklySummaryToggle} />
                         </div>
                     </CardContent>
                 </Card>
@@ -169,7 +233,7 @@ export default function Settings() {
                                     Elimina permanentemente tu cuenta y todos sus datos
                                 </p>
                             </div>
-                            <Button variant="destructive" size="sm" className="gap-2" disabled>
+                            <Button variant="destructive" size="sm" className="gap-2" onClick={handleDeleteAccount}>
                                 <Trash2 className="h-4 w-4" />
                                 Eliminar
                             </Button>
