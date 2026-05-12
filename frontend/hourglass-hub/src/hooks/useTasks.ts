@@ -61,30 +61,24 @@ export const useTasks = (projectId?: string | 'all') => {
 
 // Hook para crear tarea
 export const useCreateTask = () => {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (newTask: CreateTaskData) => {
-      // Asegurar que title no sea null
-      const taskToInsert = {
-        ...newTask,
-        title: newTask.title || newTask.name || 'Tarea sin título'
-      }
-      
+    mutationFn: async (newTask: any) => {
       const { data, error } = await supabase
         .from('tasks')
-        .insert(taskToInsert)
+        .insert([newTask])
         .select()
-        .single()
-
-      if (error) throw new Error(error.message)
-      return data
+        .single();
+      
+      if (error) throw new Error(error.message);
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-  })
-}
+  });
+};
 
 // Hook para actualizar tarea
 // Hook para actualizar tarea
