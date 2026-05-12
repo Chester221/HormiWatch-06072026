@@ -1,6 +1,3 @@
-import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
-import { AddMemberModal } from "@/components/team/AddMemberModal";
-
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/dashboard/MetricCard";
@@ -11,7 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/useTasks";
 import { useProjects } from "@/hooks/useProjects";
 import { LogTimeModal } from "@/components/tasks/LogTimeModal";
-import { useServices } from "@/hooks/useServices";
+import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
+import { AddMemberModal } from "@/components/team/AddMemberModal";
 import { useCreateTask } from "@/hooks/useTasks";
 import { toast } from "sonner";
 
@@ -19,10 +17,9 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { data: tasks, isLoading: isLoadingTasks, refetch: refetchTasks } = useTasks();
   const { data: projects, isLoading: isLoadingProjects, refetch: refetchProjects } = useProjects();
-  const { data: servicesList } = useServices();
   const createTask = useCreateTask();
 
-  // Estados para los modales
+  // Estados para modales
   const [logTimeModalOpen, setLogTimeModalOpen] = useState(false);
   const [newTaskModalOpen, setNewTaskModalOpen] = useState(false);
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
@@ -92,44 +89,26 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Quick Actions CON las funciones */}
-      <div className="mb-6">
-        <QuickActions
-          onLogTime={handleLogTime}
-          onNewTask={handleNewTask}
-          onNewProject={handleNewProject}
-          onAddMember={handleAddMember}
-        />
-      </div>
-
+      {/* Rejilla Inferior (Feeds y Acciones) - ESTRUCTURA ORIGINAL */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <ActivityFeed />
+        </div>
+        <div>
+          <QuickActions
+            onLogTime={handleLogTime}
+            onNewTask={handleNewTask}
+            onNewProject={handleNewProject}
+            onAddMember={handleAddMember}
+          />
         </div>
       </div>
 
       {/* Modales */}
       <LogTimeModal open={logTimeModalOpen} onOpenChange={setLogTimeModalOpen} projects={projects || []} onSubmit={handleCreateTask} />
       <LogTimeModal open={newTaskModalOpen} onOpenChange={setNewTaskModalOpen} projects={projects || []} onSubmit={handleCreateTask} />
-      
-      <CreateProjectModal
-        open={newProjectModalOpen}
-        onOpenChange={setNewProjectModalOpen}
-        onSuccess={() => {
-          toast.success("Proyecto creado correctamente");
-          refetchProjects();
-          setNewProjectModalOpen(false);
-        }}
-      />
-
-      <AddMemberModal
-        open={addMemberModalOpen}
-        onOpenChange={setAddMemberModalOpen}
-        onSuccess={() => {
-          toast.success("Miembro agregado correctamente");
-          setAddMemberModalOpen(false);
-        }}
-      />
+      <CreateProjectModal open={newProjectModalOpen} onOpenChange={setNewProjectModalOpen} onSuccess={() => { refetchProjects(); setNewProjectModalOpen(false); }} />
+      <AddMemberModal open={addMemberModalOpen} onOpenChange={setAddMemberModalOpen} onSuccess={() => setAddMemberModalOpen(false)} />
     </DashboardLayout>
   );
 };
