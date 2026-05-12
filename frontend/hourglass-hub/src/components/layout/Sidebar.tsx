@@ -29,7 +29,7 @@ const navigation: NavItem[] = [
   { name: "Mis Tareas", href: "/tasks", icon: CheckSquare },
   { name: "Clientes", href: "/clients", icon: Briefcase, managerOnly: true },
   { name: "Equipo", href: "/team", icon: Users, managerOnly: true },
- // { name: "Servicios", href: "/services", icon: UserCircle, managerOnly: true },
+  { name: "Servicios", href: "/services", icon: UserCircle, managerOnly: true },
   { name: "Feriados", href: "/holidays", icon: Calendar, managerOnly: true },
   { name: "Reportes", href: "/reports", icon: FileBarChart, managerOnly: true },
 ];
