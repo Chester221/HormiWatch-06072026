@@ -16,7 +16,7 @@ export interface Service {
     description?: string | null
     default_hourly_rate: number
     is_active: boolean
-    categories?: ServiceCategory // Relación
+    categories?: ServiceCategory
 }
 
 // Hook para obtener categorías
@@ -52,54 +52,53 @@ export const useServiceCategories = () => {
 // Hook para obtener servicios
 export const useServices = (searchQuery?: string) => {
     const fetchServices = async (): Promise<Service[]> => {
-    try {
-        let query = supabase
-  .from('services')
-  .select('*, categories:service_categories(*)')
-  .eq('is_active', true)  // <-- Esto ya lo tienes
-  .order('name');
+        try {
+            let query = supabase
+                .from('services')
+                .select(`
+          *,
+          categories:service_categories ( * )
+        `)
+                .eq('is_active', true)
+                .order('name', { ascending: true })
 
-        const { data, error } = await query
+            const { data, error } = await query
 
-        if (error) {
-            if (error.code === '42P01' || error.message.includes('does not exist')) {
-                console.warn('La tabla services no existe en Supabase.')
-                return []
+            if (error) {
+                if (error.code === '42P01' || error.message.includes('does not exist')) {
+                    console.warn('La tabla services no existe en Supabase.')
+                    return []
+                }
+                throw new Error(error.message)
             }
-            throw new Error(error.message)
+
+            let services = (data || []) as Service[]
+
+            services = services.map(service => ({
+                ...service,
+                default_hourly_rate: service.default_hourly_rate || 0
+            }))
+
+            if (searchQuery) {
+                const search = searchQuery.toLowerCase()
+                services = services.filter(s =>
+                    s.name.toLowerCase().includes(search) ||
+                    (s.description && s.description.toLowerCase().includes(search)) ||
+                    (s.categories && s.categories.name.toLowerCase().includes(search))
+                )
+            }
+
+            return services
+        } catch (err) {
+            console.error('Error fetching services:', err)
+            return []
         }
-
-        let services = (data || []) as Service[]
-
-        // Asegurar que default_hourly_rate sea un número
-        services = services.map(service => ({
-            ...service,
-            default_hourly_rate: service.default_hourly_rate || 0
-        }))
-
-        if (searchQuery) {
-            const search = searchQuery.toLowerCase()
-            services = services.filter(s =>
-                s.name.toLowerCase().includes(search) ||
-                (s.description && s.description.toLowerCase().includes(search)) ||
-                (s.categories && s.categories.name.toLowerCase().includes(search))
-            )
-        }
-
-        return services
-    } catch (err) {
-        console.error('Error fetching services:', err)
-        return []
     }
-}
 
-// Datos para crear/editar servicio
-interface CreateServiceData {
-    name: string
-    category_id: string
-    description?: string
-    default_hourly_rate: number
-    is_active?: boolean
+    return useQuery({
+        queryKey: ['services', searchQuery],
+        queryFn: fetchServices,
+    })
 }
 
 // Hook para crear servicio
@@ -107,7 +106,7 @@ export const useCreateService = () => {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: async (data: CreateServiceData) => {
+        mutationFn: async (data: any) => {
             const { data: newService, error } = await supabase
                 .from('services')
                 .insert({ ...data, is_active: true })
@@ -128,7 +127,7 @@ export const useUpdateService = () => {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: async ({ id, data }: { id: string; data: Partial<CreateServiceData> }) => {
+        mutationFn: async ({ id, data }: { id: string; data: any }) => {
             const { data: updated, error } = await supabase
                 .from('services')
                 .update(data)
@@ -145,20 +144,20 @@ export const useUpdateService = () => {
     })
 }
 
-// Hook para eliminar servicio (soft delete)
+// Hook para eliminar servicio (eliminación REAL)
 export const useDeleteService = () => {
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('services')
-        .delete()  // <-- Elimina físicamente
-        .eq('id', id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] });
-    },
-  });
-};
+    return useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase
+                .from('services')
+                .delete()
+                .eq('id', id)
+            if (error) throw new Error(error.message)
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['services'] })
+        },
+    })
+}
