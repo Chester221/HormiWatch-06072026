@@ -179,7 +179,7 @@ export default function Services() {
                       <TableCell>
                         <span className="font-medium flex items-center gap-1 text-green-600 dark:text-green-400">
                           <DollarSign className="h-3.5 w-3.5" />
-                          {service.default_hourly_rate.toFixed(2)}
+{service.default_hourly_rate ? service.default_hourly_rate.toFixed(2) : '0.00'}
                         </span>
                       </TableCell>
                       <TableCell>

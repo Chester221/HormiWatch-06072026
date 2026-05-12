@@ -52,48 +52,45 @@ export const useServiceCategories = () => {
 // Hook para obtener servicios
 export const useServices = (searchQuery?: string) => {
     const fetchServices = async (): Promise<Service[]> => {
-        try {
-            let query = supabase
-                .from('services')
-                .select(`
-          *,
-          categories:service_categories ( * )
-        `)
-                .eq('is_active', true)
-                .order('name', { ascending: true })
+    try {
+        let query = supabase
+  .from('services')
+  .select('*, categories:service_categories(*)')
+  .eq('is_active', true)  // <-- Esto ya lo tienes
+  .order('name');
 
-            const { data, error } = await query
+        const { data, error } = await query
 
-            if (error) {
-                if (error.code === '42P01' || error.message.includes('does not exist')) {
-                    console.warn('La tabla services no existe en Supabase.')
-                    return []
-                }
-                throw new Error(error.message)
+        if (error) {
+            if (error.code === '42P01' || error.message.includes('does not exist')) {
+                console.warn('La tabla services no existe en Supabase.')
+                return []
             }
-
-            let services = (data || []) as Service[]
-
-            if (searchQuery) {
-                const search = searchQuery.toLowerCase()
-                services = services.filter(s =>
-                    s.name.toLowerCase().includes(search) ||
-                    (s.description && s.description.toLowerCase().includes(search)) ||
-                    (s.categories && s.categories.name.toLowerCase().includes(search))
-                )
-            }
-
-            return services
-        } catch (err) {
-            console.error('Error fetching services:', err)
-            return []
+            throw new Error(error.message)
         }
-    }
 
-    return useQuery({
-        queryKey: ['services', searchQuery],
-        queryFn: fetchServices,
-    })
+        let services = (data || []) as Service[]
+
+        // Asegurar que default_hourly_rate sea un número
+        services = services.map(service => ({
+            ...service,
+            default_hourly_rate: service.default_hourly_rate || 0
+        }))
+
+        if (searchQuery) {
+            const search = searchQuery.toLowerCase()
+            services = services.filter(s =>
+                s.name.toLowerCase().includes(search) ||
+                (s.description && s.description.toLowerCase().includes(search)) ||
+                (s.categories && s.categories.name.toLowerCase().includes(search))
+            )
+        }
+
+        return services
+    } catch (err) {
+        console.error('Error fetching services:', err)
+        return []
+    }
 }
 
 // Datos para crear/editar servicio
@@ -150,19 +147,18 @@ export const useUpdateService = () => {
 
 // Hook para eliminar servicio (soft delete)
 export const useDeleteService = () => {
-    const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: async (id: string) => {
-            const { error } = await supabase
-                .from('services')
-                .update({ is_active: false })
-                .eq('id', id)
-
-            if (error) throw new Error(error.message)
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['services'] })
-        },
-    })
-}
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('services')
+        .delete()  // <-- Elimina físicamente
+        .eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+    },
+  });
+};

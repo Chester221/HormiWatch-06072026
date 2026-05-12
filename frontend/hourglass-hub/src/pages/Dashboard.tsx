@@ -12,6 +12,8 @@ import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { AddMemberModal } from "@/components/team/AddMemberModal";
 import { useCreateTask } from "@/hooks/useTasks";
 import { toast } from "sonner";
+import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
+
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -19,17 +21,18 @@ const Dashboard = () => {
   const { data: projects, isLoading: isLoadingProjects, refetch: refetchProjects } = useProjects();
   const createTask = useCreateTask();
 
-  // Estados para modales
-  const [logTimeModalOpen, setLogTimeModalOpen] = useState(false);
-  const [newTaskModalOpen, setNewTaskModalOpen] = useState(false);
-  const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
-  const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
+// Estados para los modales
+const [logTimeModalOpen, setLogTimeModalOpen] = useState(false);
+const [newTaskModalOpen, setNewTaskModalOpen] = useState(false);
+const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
+const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
+const [createTaskModalOpen, setCreateTaskModalOpen] = useState(false);
 
-  // Funciones para abrir modales
-  const handleLogTime = () => setLogTimeModalOpen(true);
-  const handleNewTask = () => setNewTaskModalOpen(true);
-  const handleNewProject = () => setNewProjectModalOpen(true);
-  const handleAddMember = () => setAddMemberModalOpen(true);
+// Funciones para abrir modales
+const handleLogTime = () => setLogTimeModalOpen(true);
+const handleNewTask = () => setCreateTaskModalOpen(true);
+const handleNewProject = () => setNewProjectModalOpen(true);
+const handleAddMember = () => setAddMemberModalOpen(true);
 
   // Función para crear tarea
   const handleCreateTask = (data: any) => {
@@ -109,6 +112,7 @@ const Dashboard = () => {
       <LogTimeModal open={newTaskModalOpen} onOpenChange={setNewTaskModalOpen} projects={projects || []} onSubmit={handleCreateTask} />
       <CreateProjectModal open={newProjectModalOpen} onOpenChange={setNewProjectModalOpen} onSuccess={() => { refetchProjects(); setNewProjectModalOpen(false); }} />
       <AddMemberModal open={addMemberModalOpen} onOpenChange={setAddMemberModalOpen} onSuccess={() => setAddMemberModalOpen(false)} />
+      <CreateTaskModal open={createTaskModalOpen} onOpenChange={setCreateTaskModalOpen} projects={projects || []} services={services || []} onSuccess={() => { refetchTasks(); setCreateTaskModalOpen(false); }} />
     </DashboardLayout>
   );
 };

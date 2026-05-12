@@ -49,15 +49,17 @@ export default function Reports() {
 
     // Filter tasks by selected month
     const filteredTasks = useMemo(() => {
-        const [year, month] = selectedMonth.split('-').map(Number);
-        const start = startOfMonth(new Date(year, month - 1));
-        const end = endOfMonth(new Date(year, month - 1));
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const start = startOfMonth(new Date(year, month - 1));
+    const end = endOfMonth(new Date(year, month - 1));
 
-        return tasks.filter(task => {
-            const taskDate = parseISO(task.start_time);
-            return taskDate >= start && taskDate <= end;
-        });
-    }, [tasks, selectedMonth]);
+    return tasks.filter(task => {
+        // Verificar que task.start_time existe
+        if (!task.start_time) return false;
+        const taskDate = parseISO(task.start_time);
+        return taskDate >= start && taskDate <= end;
+    });
+}, [tasks, selectedMonth]);
 
     // Calculate metrics
     const totalHours = useMemo(() => {
@@ -85,47 +87,45 @@ export default function Reports() {
 
     // Data for charts
     const hoursByProject = useMemo(() => {
-        const grouped: Record<string, number> = {};
-        filteredTasks.forEach(task => {
-            const projectName = task.projects?.name || 'Sin proyecto';
-            if (task.start_time && task.end_time) {
-                const hours = (new Date(task.end_time).getTime() - new Date(task.start_time).getTime()) / (1000 * 60 * 60);
-                grouped[projectName] = (grouped[projectName] || 0) + hours;
-            }
-        });
-        return Object.entries(grouped).map(([name, hours]) => ({ name, hours: Math.round(hours * 10) / 10 }));
-    }, [filteredTasks]);
+    const grouped: Record<string, number> = {};
+    filteredTasks.forEach(task => {
+        if (!task.start_time || !task.end_time) return;
+        const projectName = task.projects?.name || 'Sin proyecto';
+        const hours = (new Date(task.end_time).getTime() - new Date(task.start_time).getTime()) / (1000 * 60 * 60);
+        grouped[projectName] = (grouped[projectName] || 0) + hours;
+    });
+    return Object.entries(grouped).map(([name, hours]) => ({ name, hours: Math.round(hours * 10) / 10 }));
+}, [filteredTasks]);
 
-    const hoursByService = useMemo(() => {
-        const grouped: Record<string, number> = {};
-        filteredTasks.forEach(task => {
-            const serviceName = task.services?.name || 'Sin servicio';
-            if (task.start_time && task.end_time) {
-                const hours = (new Date(task.end_time).getTime() - new Date(task.start_time).getTime()) / (1000 * 60 * 60);
-                grouped[serviceName] = (grouped[serviceName] || 0) + hours;
-            }
-        });
-        return Object.entries(grouped).map(([name, value]) => ({ name, value: Math.round(value * 10) / 10 }));
-    }, [filteredTasks]);
+const hoursByService = useMemo(() => {
+    const grouped: Record<string, number> = {};
+    filteredTasks.forEach(task => {
+        if (!task.start_time || !task.end_time) return;
+        const serviceName = task.services?.name || 'Sin servicio';
+        const hours = (new Date(task.end_time).getTime() - new Date(task.start_time).getTime()) / (1000 * 60 * 60);
+        grouped[serviceName] = (grouped[serviceName] || 0) + hours;
+    });
+    return Object.entries(grouped).map(([name, value]) => ({ name, value: Math.round(value * 10) / 10 }));
+}, [filteredTasks]);
 
     const dailyHours = useMemo(() => {
-        const [year, month] = selectedMonth.split('-').map(Number);
-        const start = startOfMonth(new Date(year, month - 1));
-        const end = endOfMonth(new Date(year, month - 1));
-        const days = eachDayOfInterval({ start, end });
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const start = startOfMonth(new Date(year, month - 1));
+    const end = endOfMonth(new Date(year, month - 1));
+    const days = eachDayOfInterval({ start, end });
 
-        return days.map(day => {
-            const dayStr = format(day, 'yyyy-MM-dd');
-            const dayTasks = filteredTasks.filter(t => t.start_time.startsWith(dayStr));
-            const hours = dayTasks.reduce((acc, task) => {
-                if (task.start_time && task.end_time) {
-                    return acc + (new Date(task.end_time).getTime() - new Date(task.start_time).getTime()) / (1000 * 60 * 60);
-                }
-                return acc;
-            }, 0);
-            return { date: format(day, 'd'), hours: Math.round(hours * 10) / 10 };
-        });
-    }, [filteredTasks, selectedMonth]);
+    return days.map(day => {
+        const dayStr = format(day, 'yyyy-MM-dd');
+        const dayTasks = filteredTasks.filter(t => t.start_time && t.start_time.startsWith(dayStr));
+        const hours = dayTasks.reduce((acc, task) => {
+            if (task.start_time && task.end_time) {
+                return acc + (new Date(task.end_time).getTime() - new Date(task.start_time).getTime()) / (1000 * 60 * 60);
+            }
+            return acc;
+        }, 0);
+        return { date: format(day, 'd'), hours: Math.round(hours * 10) / 10 };
+    });
+}, [filteredTasks, selectedMonth]);
 
     // Generate PDF Report
     const generatePDF = () => {
