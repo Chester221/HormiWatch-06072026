@@ -43,9 +43,9 @@ export default function Reports() {
     const [reportType, setReportType] = useState<'summary' | 'detailed'>('summary');
 
     const { data: tasks = [] } = useTasks();
-    const { data: projects = [] } = useProjects();
-    const { data: services = [] } = useServices();
-    const { data: teamMembers = [] } = useTeamMembers();
+const { data: projects = [] } = useProjects();
+const { data: teamMembers = [] } = useTeamMembers();
+const { data: services = [] } = useServices();
 
     // Filter tasks by selected month
     const filteredTasks = useMemo(() => {
