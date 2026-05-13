@@ -2,7 +2,6 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { CheckSquare, Clock, FolderKanban, TrendingUp, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/useTasks";
@@ -87,23 +86,17 @@ const Dashboard = () => {
             <MetricCard title="Tareas Completadas" value={tareasCompletadas} subtitle="Historial de éxito" icon={TrendingUp} trend={{ value: 5, positive: true }} delay={250} />
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <ActivityFeed />
-            </div>
-            <div>
-              <QuickActions
-                onLogTime={handleLogTime}
-                onNewTask={handleNewTask}
-                onNewProject={handleNewProject}
-                onAddMember={handleAddMember}
-              />
-            </div>
+          <div className="mb-6">
+            <QuickActions
+              onLogTime={handleLogTime}
+              onNewTask={handleNewTask}
+              onNewProject={handleNewProject}
+              onAddMember={handleAddMember}
+            />
           </div>
         </>
       )}
 
-      {/* Modales */}
       <LogTimeModal open={logTimeModalOpen} onOpenChange={setLogTimeModalOpen} projects={projects} onSubmit={handleCreateTask} />
       <LogTimeModal open={newTaskModalOpen} onOpenChange={setNewTaskModalOpen} projects={projects} onSubmit={handleCreateTask} />
       <CreateProjectModal open={newProjectModalOpen} onOpenChange={setNewProjectModalOpen} onSuccess={() => { refetchProjects(); setNewProjectModalOpen(false); }} />
