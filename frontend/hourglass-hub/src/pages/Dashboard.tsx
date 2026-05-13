@@ -8,19 +8,23 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/useTasks";
 import { useProjects } from "@/hooks/useProjects";
 import { LogTimeModal } from "@/components/tasks/LogTimeModal";
+import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { useCreateTask } from "@/hooks/useTasks";
+import { useServices } from "@/hooks/useServices";
 import { toast } from "sonner";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { data: tasks = [], isLoading: isLoadingTasks, refetch: refetchTasks } = useTasks();
   const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
+  const { data: services = [] } = useServices();
   const createTask = useCreateTask();
 
   const [logTimeModalOpen, setLogTimeModalOpen] = useState(false);
+  const [createTaskModalOpen, setCreateTaskModalOpen] = useState(false);
 
   const handleLogTime = () => setLogTimeModalOpen(true);
-  const handleNewTask = () => toast.info("New Task - Funcionalidad en desarrollo");
+  const handleNewTask = () => setCreateTaskModalOpen(true);
   const handleNewProject = () => toast.info("New Project - Funcionalidad en desarrollo");
   const handleAddMember = () => toast.info("Add Member - Funcionalidad en desarrollo");
 
@@ -29,6 +33,7 @@ const Dashboard = () => {
       onSuccess: () => {
         toast.success("Tarea creada correctamente");
         setLogTimeModalOpen(false);
+        setCreateTaskModalOpen(false);
         refetchTasks();
       },
       onError: (error: any) => {
@@ -95,8 +100,9 @@ const Dashboard = () => {
         </>
       )}
 
-      {/* Solo LogTimeModal por ahora */}
+      {/* Modales */}
       <LogTimeModal open={logTimeModalOpen} onOpenChange={setLogTimeModalOpen} projects={projects} onSubmit={handleCreateTask} />
+      <CreateTaskModal open={createTaskModalOpen} onOpenChange={setCreateTaskModalOpen} projects={projects} services={services} onSuccess={() => { refetchTasks(); setCreateTaskModalOpen(false); }} />
     </DashboardLayout>
   );
 };
