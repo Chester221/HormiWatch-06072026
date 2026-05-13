@@ -2,13 +2,12 @@ import { useTasks } from "@/hooks/useTasks";
 import { useProjects } from "@/hooks/useProjects";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { Clock, FolderKanban, CheckSquare } from "lucide-react";
+import { CheckSquare, FolderKanban, Clock } from "lucide-react";
 
 export function ActivityFeed() {
   const { data: tasks = [] } = useTasks();
   const { data: projects = [] } = useProjects();
 
-  // Crear actividades combinadas
   const activities = [
     ...tasks.slice(0, 5).map(task => ({
       id: task.id,
@@ -35,7 +34,6 @@ export function ActivityFeed() {
         <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
           <Clock className="h-8 w-8 mb-2 opacity-50" />
           <p className="text-sm">No hay actividad reciente</p>
-          <p className="text-xs">Crea tareas o proyectos para ver actividad aquí</p>
         </div>
       </div>
     );
