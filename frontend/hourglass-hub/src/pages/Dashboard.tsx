@@ -8,7 +8,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/useTasks";
 import { useProjects } from "@/hooks/useProjects";
 import { LogTimeModal } from "@/components/tasks/LogTimeModal";
-import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { useCreateTask } from "@/hooks/useTasks";
 import { toast } from "sonner";
 
@@ -19,19 +18,17 @@ const Dashboard = () => {
   const createTask = useCreateTask();
 
   const [logTimeModalOpen, setLogTimeModalOpen] = useState(false);
-  const [createTaskModalOpen, setCreateTaskModalOpen] = useState(false);
 
   const handleLogTime = () => setLogTimeModalOpen(true);
-  const handleNewTask = () => setCreateTaskModalOpen(true);
-  const handleNewProject = () => toast.info("New Project - Próximamente");
-  const handleAddMember = () => toast.info("Add Member - Próximamente");
+  const handleNewTask = () => toast.info("New Task - Funcionalidad en desarrollo");
+  const handleNewProject = () => toast.info("New Project - Funcionalidad en desarrollo");
+  const handleAddMember = () => toast.info("Add Member - Funcionalidad en desarrollo");
 
   const handleCreateTask = (data: any) => {
     createTask.mutate(data, {
       onSuccess: () => {
         toast.success("Tarea creada correctamente");
         setLogTimeModalOpen(false);
-        setCreateTaskModalOpen(false);
         refetchTasks();
       },
       onError: (error: any) => {
@@ -98,9 +95,8 @@ const Dashboard = () => {
         </>
       )}
 
-      {/* Modales */}
+      {/* Solo LogTimeModal por ahora */}
       <LogTimeModal open={logTimeModalOpen} onOpenChange={setLogTimeModalOpen} projects={projects} onSubmit={handleCreateTask} />
-      <CreateTaskModal open={createTaskModalOpen} onOpenChange={setCreateTaskModalOpen} projects={projects} onSuccess={() => { refetchTasks(); setCreateTaskModalOpen(false); }} />
     </DashboardLayout>
   );
 };
