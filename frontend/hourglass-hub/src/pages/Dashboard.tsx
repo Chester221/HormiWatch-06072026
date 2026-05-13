@@ -7,12 +7,39 @@ import { CheckSquare, Clock, FolderKanban, TrendingUp, Loader2 } from "lucide-re
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/useTasks";
 import { useProjects } from "@/hooks/useProjects";
+import { LogTimeModal } from "@/components/tasks/LogTimeModal";
+import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
+import { useCreateTask } from "@/hooks/useTasks";
 import { toast } from "sonner";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { data: tasks = [], isLoading: isLoadingTasks } = useTasks();
+  const { data: tasks = [], isLoading: isLoadingTasks, refetch: refetchTasks } = useTasks();
   const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
+  const createTask = useCreateTask();
+
+  const [logTimeModalOpen, setLogTimeModalOpen] = useState(false);
+  const [createTaskModalOpen, setCreateTaskModalOpen] = useState(false);
+
+  const handleLogTime = () => setLogTimeModalOpen(true);
+  const handleNewTask = () => setCreateTaskModalOpen(true);
+  const handleNewProject = () => toast.info("New Project - Próximamente");
+  const handleAddMember = () => toast.info("Add Member - Próximamente");
+
+  const handleCreateTask = (data: any) => {
+    createTask.mutate(data, {
+      onSuccess: () => {
+        toast.success("Tarea creada correctamente");
+        setLogTimeModalOpen(false);
+        setCreateTaskModalOpen(false);
+        refetchTasks();
+      },
+      onError: (error: any) => {
+        toast.error(`Error: ${error.message}`);
+      }
+    });
+  };
+
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario';
 
   const tareasCount = tasks.length;
@@ -30,11 +57,6 @@ const Dashboard = () => {
 
   const tareasCompletadas = tasks.filter(t => t.status === 'Completed').length;
   const isLoading = isLoadingTasks || isLoadingProjects;
-
-  const handleLogTime = () => toast.info("Log Time - Funcionalidad en desarrollo");
-  const handleNewTask = () => toast.info("New Task - Funcionalidad en desarrollo");
-  const handleNewProject = () => toast.info("New Project - Funcionalidad en desarrollo");
-  const handleAddMember = () => toast.info("Add Member - Funcionalidad en desarrollo");
 
   return (
     <DashboardLayout>
@@ -75,6 +97,10 @@ const Dashboard = () => {
           </div>
         </>
       )}
+
+      {/* Modales */}
+      <LogTimeModal open={logTimeModalOpen} onOpenChange={setLogTimeModalOpen} projects={projects} onSubmit={handleCreateTask} />
+      <CreateTaskModal open={createTaskModalOpen} onOpenChange={setCreateTaskModalOpen} projects={projects} onSuccess={() => { refetchTasks(); setCreateTaskModalOpen(false); }} />
     </DashboardLayout>
   );
 };
