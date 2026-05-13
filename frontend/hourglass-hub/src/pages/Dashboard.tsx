@@ -1,14 +1,50 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/dashboard/MetricCard";
+import { QuickActions } from "@/components/dashboard/QuickActions";
 import { CheckSquare, Clock, FolderKanban, TrendingUp, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/useTasks";
 import { useProjects } from "@/hooks/useProjects";
+import { LogTimeModal } from "@/components/tasks/LogTimeModal";
+import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
+import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
+import { AddMemberModal } from "@/components/team/AddMemberModal";
+import { useCreateTask } from "@/hooks/useTasks";
+import { toast } from "sonner";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { data: tasks = [], isLoading: isLoadingTasks } = useTasks();
-  const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
+  const { data: tasks = [], isLoading: isLoadingTasks, refetch: refetchTasks } = useTasks();
+  const { data: projects = [], isLoading: isLoadingProjects, refetch: refetchProjects } = useProjects();
+  const createTask = useCreateTask();
+
+  // Estados para modales
+  const [logTimeModalOpen, setLogTimeModalOpen] = useState(false);
+  const [createTaskModalOpen, setCreateTaskModalOpen] = useState(false);
+  const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
+  const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
+
+  // Handlers
+  const handleLogTime = () => setLogTimeModalOpen(true);
+  const handleNewTask = () => setCreateTaskModalOpen(true);
+  const handleNewProject = () => setNewProjectModalOpen(true);
+  const handleAddMember = () => setAddMemberModalOpen(true);
+
+  const handleCreateTask = (data: any) => {
+    createTask.mutate(data, {
+      onSuccess: () => {
+        toast.success("Tarea creada correctamente");
+        setLogTimeModalOpen(false);
+        setCreateTaskModalOpen(false);
+        refetchTasks();
+      },
+      onError: (error: any) => {
+        toast.error(`Error: ${error.message}`);
+      }
+    });
+  };
+
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario';
 
   const tareasCount = tasks.length;
@@ -43,12 +79,28 @@ const Dashboard = () => {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard title="Tareas Registradas" value={tareasCount} subtitle="Total en el sistema" icon={CheckSquare} trend={{ value: 12, positive: true }} delay={100} />
-          <MetricCard title="Horas Registradas" value={`${horasTotal.toFixed(1)}h`} subtitle="Tiempo total invertido" icon={Clock} trend={{ value: 8, positive: true }} delay={150} />
-          <MetricCard title="Proyectos" value={proyectosCount} subtitle="Total registrados" icon={FolderKanban} trend={{ value: 2, positive: true }} delay={200} />
-          <MetricCard title="Tareas Completadas" value={tareasCompletadas} subtitle="Historial de éxito" icon={TrendingUp} trend={{ value: 5, positive: true }} delay={250} />
-        </div>
+        <>
+          <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard title="Tareas Registradas" value={tareasCount} subtitle="Total en el sistema" icon={CheckSquare} trend={{ value: 12, positive: true }} delay={100} />
+            <MetricCard title="Horas Registradas" value={`${horasTotal.toFixed(1)}h`} subtitle="Tiempo total invertido" icon={Clock} trend={{ value: 8, positive: true }} delay={150} />
+            <MetricCard title="Proyectos" value={proyectosCount} subtitle="Total registrados" icon={FolderKanban} trend={{ value: 2, positive: true }} delay={200} />
+            <MetricCard title="Tareas Completadas" value={tareasCompletadas} subtitle="Historial de éxito" icon={TrendingUp} trend={{ value: 5, positive: true }} delay={250} />
+          </div>
+
+          {/* Quick Actions */}
+          <QuickActions
+            onLogTime={handleLogTime}
+            onNewTask={handleNewTask}
+            onNewProject={handleNewProject}
+            onAddMember={handleAddMember}
+          />
+
+          {/* Modales */}
+          <LogTimeModal open={logTimeModalOpen} onOpenChange={setLogTimeModalOpen} projects={projects} onSubmit={handleCreateTask} />
+          <CreateTaskModal open={createTaskModalOpen} onOpenChange={setCreateTaskModalOpen} projects={projects} onSuccess={() => { refetchTasks(); setCreateTaskModalOpen(false); }} />
+          <CreateProjectModal open={newProjectModalOpen} onOpenChange={setNewProjectModalOpen} onSuccess={() => { refetchProjects(); setNewProjectModalOpen(false); }} />
+          <AddMemberModal open={addMemberModalOpen} onOpenChange={setAddMemberModalOpen} onSuccess={() => setAddMemberModalOpen(false)} />
+        </>
       )}
     </DashboardLayout>
   );
