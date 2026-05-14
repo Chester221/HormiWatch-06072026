@@ -130,24 +130,48 @@ const Tasks = () => {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDeleteTask = async () => {
-    if (!taskToDelete) return;
-    console.log("=== confirmDeleteTask ===");
-    console.log("Eliminando ID:", taskToDelete);
-    
-    deleteTaskMutation.mutate(taskToDelete, {
-      onSuccess: () => {
-        toast.success("Tarea eliminada correctamente");
-        setDeleteDialogOpen(false);
-        setTaskToDelete(null);
-        refetchTasks();
-      },
-      onError: (error: any) => {
-        console.error("Error al eliminar:", error);
-        toast.error(`Error: ${error.message}`);
-      },
-    });
-  };
+  // Eliminar tarea - MODIFICAR ESTA PARTE
+const confirmDeleteTask = async () => {
+  if (!taskToDelete) return;
+  console.log("=== confirmDeleteTask ===");
+  console.log("Eliminando ID:", taskToDelete);
+  
+  deleteTaskMutation.mutate(taskToDelete, {
+    onSuccess: () => {
+      toast.success("Tarea eliminada correctamente");
+      setDeleteDialogOpen(false);
+      setTaskToDelete(null);
+      // En lugar de refetchTasks, forzar recarga manual
+      window.location.reload();
+    },
+    onError: (error: any) => {
+      console.error("Error al eliminar:", error);
+      toast.error(`Error: ${error.message}`);
+    },
+  });
+};
+
+// Actualizar tarea - MODIFICAR ESTA PARTE
+const handleUpdateTask = (updatedData: any) => {
+  if (!taskToEdit) return;
+  
+  updateTaskMutation.mutate({
+    id: taskToEdit.id,
+    data: updatedData
+  }, {
+    onSuccess: () => {
+      toast.success("Tarea actualizada correctamente");
+      setEditModalOpen(false);
+      setTaskToEdit(null);
+      // En lugar de refetchTasks, forzar recarga manual
+      window.location.reload();
+    },
+    onError: (error: any) => {
+      console.error("Error al actualizar tarea:", error);
+      toast.error(`Error al actualizar: ${error.message}`);
+    }
+  });
+};
 
   // 3. Editar Tarea
   const handleEditTask = (task: Task) => {

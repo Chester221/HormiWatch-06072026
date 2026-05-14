@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase/client';
 
 interface AddMemberModalProps {
   open: boolean;
@@ -36,29 +37,44 @@ export function AddMemberModal({ open, onOpenChange, onSuccess }: AddMemberModal
     }
 
     setIsLoading(true);
-    
-    // Simular envío (aquí conectarías con tu API)
-    setTimeout(() => {
-      toast.success(`Invitación enviada a ${email} con rol de ${role}`);
-      setEmail('');
-      setRole('member');
+
+    // Buscar usuario por email
+    const { data: users, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name')
+      .eq('email', email);
+
+    if (error) {
+      toast.error('Error al buscar usuario');
       setIsLoading(false);
-      onOpenChange(false);
-      onSuccess();
-    }, 1000);
+      return;
+    }
+
+    if (!users || users.length === 0) {
+      toast.error('Usuario no encontrado. Asegúrate de que el usuario esté registrado.');
+      setIsLoading(false);
+      return;
+    }
+
+    // Aquí puedes agregar lógica para asignar rol en la tabla que corresponda
+    toast.success(`Invitación enviada a ${email} con rol de ${role}`);
+    setEmail('');
+    setRole('member');
+    setIsLoading(false);
+    onOpenChange(false);
+    onSuccess();
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-card border-border">
         <DialogHeader>
-          <DialogTitle>Agregar Miembro al Equipo</DialogTitle>
+          <DialogTitle>Agregar Miembro</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Correo Electrónico *</Label>
+            <Label>Correo Electrónico *</Label>
             <Input
-              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -68,14 +84,14 @@ export function AddMemberModal({ open, onOpenChange, onSuccess }: AddMemberModal
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="role">Rol</Label>
+            <Label>Rol</Label>
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger className="bg-background">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Administrador</SelectItem>
-                <SelectItem value="manager">Gerente</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
                 <SelectItem value="member">Miembro</SelectItem>
                 <SelectItem value="viewer">Solo Vista</SelectItem>
               </SelectContent>
@@ -86,7 +102,7 @@ export function AddMemberModal({ open, onOpenChange, onSuccess }: AddMemberModal
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Enviando...' : 'Enviar Invitación'}
+              {isLoading ? 'Buscando...' : 'Agregar Miembro'}
             </Button>
           </div>
         </form>

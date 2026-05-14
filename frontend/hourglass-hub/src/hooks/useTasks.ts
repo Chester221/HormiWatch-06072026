@@ -2,23 +2,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import type { Tables, InsertTables } from '@/types/supabase'
 
-// Tipos para tareas derivados de Supabase
 export type Task = Tables<'tasks'> & {
-  // Relaciones
   projects?: { name: string } | null
   services?: { name: string } | null
   technician?: { full_name: string; avatar_url: string | null } | null
 }
 
-// Tipo para crear nueva tarea derivado de Supabase
 export type CreateTaskData = InsertTables<'tasks'>
 
-// Hook para obtener tareas
-// Hook para obtener tareas
 export const useTasks = (projectId?: string | 'all') => {
   const fetchTasks = async (): Promise<Task[]> => {
     try {
-      // Usar la vista tasks_with_details en lugar de la tabla tasks
       let query = supabase
         .from('tasks_with_details')
         .select('*')
@@ -38,7 +32,6 @@ export const useTasks = (projectId?: string | 'all') => {
         throw new Error(error.message)
       }
 
-      // Transformar los datos al formato que espera el frontend
       const transformedData = (data || []).map((item: any) => ({
         ...item,
         projects: item.project_name ? { name: item.project_name } : null,
@@ -59,7 +52,6 @@ export const useTasks = (projectId?: string | 'all') => {
   })
 }
 
-// Hook para crear tarea
 export const useCreateTask = () => {
   const queryClient = useQueryClient();
 
@@ -75,20 +67,17 @@ export const useCreateTask = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.refetchQueries({ queryKey: ['tasks'] })
     },
   });
 };
 
-// Hook para actualizar tarea
-// Hook para actualizar tarea
-// Hook para actualizar tarea
 export const useUpdateTask = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number | string; data: Partial<CreateTaskData> }) => {
-      // Primero actualizar
       const { error: updateError } = await supabase
         .from('tasks')
         .update(data)
@@ -96,7 +85,6 @@ export const useUpdateTask = () => {
 
       if (updateError) throw new Error(updateError.message)
 
-      // Luego obtener el registro actualizado
       const { data: updated, error: fetchError } = await supabase
         .from('tasks')
         .select('*')
@@ -108,25 +96,40 @@ export const useUpdateTask = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.refetchQueries({ queryKey: ['tasks'] })
     },
   })
 }
 
-// Hook para eliminar tarea
 export const useDeleteTask = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (taskId: string) => {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', taskId)
-      
+      const { error } = await supabase.from('tasks').delete().eq('id', taskId)
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      // Forzar recarga de TODAS las queries que empiecen con 'tasks'
+      queryClient.refetchQueries({
+        predicate: (query) => query.queryKey[0] === 'tasks'
+      })
+    },
+  })
+}
+
+export const useUpdateTask = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const { error } = await supabase.from('tasks').update(data).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.refetchQueries({
+        predicate: (query) => query.queryKey[0] === 'tasks'
+      })
     },
   })
 }

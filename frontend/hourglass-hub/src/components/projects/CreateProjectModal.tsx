@@ -26,12 +26,12 @@ export function CreateProjectModal({ open, onOpenChange, onSuccess }: CreateProj
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error('El nombre del proyecto es requerido');
+      toast.error('El nombre es requerido');
       return;
     }
 
     createProject.mutate(
-      { name, description, status: 'active' },
+      { name, description: description || null, status: 'active' },
       {
         onSuccess: () => {
           toast.success('Proyecto creado correctamente');
@@ -51,13 +51,12 @@ export function CreateProjectModal({ open, onOpenChange, onSuccess }: CreateProj
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-card border-border">
         <DialogHeader>
-          <DialogTitle>Crear Nuevo Proyecto</DialogTitle>
+          <DialogTitle>Nuevo Proyecto</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nombre del Proyecto *</Label>
+            <Label>Nombre del Proyecto *</Label>
             <Input
-              id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ej: Mi Proyecto"
@@ -66,9 +65,8 @@ export function CreateProjectModal({ open, onOpenChange, onSuccess }: CreateProj
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">Descripción</Label>
+            <Label>Descripción</Label>
             <Textarea
-              id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Descripción del proyecto..."

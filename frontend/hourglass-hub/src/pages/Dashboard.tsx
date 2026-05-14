@@ -9,6 +9,8 @@ import { useTasks } from "@/hooks/useTasks";
 import { useProjects } from "@/hooks/useProjects";
 import { LogTimeModal } from "@/components/tasks/LogTimeModal";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
+import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
+import { AddMemberModal } from "@/components/team/AddMemberModal";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useServices } from "@/hooks/useServices";
 import { toast } from "sonner";
@@ -16,17 +18,19 @@ import { toast } from "sonner";
 const Dashboard = () => {
   const { user } = useAuth();
   const { data: tasks = [], isLoading: isLoadingTasks, refetch: refetchTasks } = useTasks();
-  const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
+  const { data: projects = [], isLoading: isLoadingProjects, refetch: refetchProjects } = useProjects();
   const { data: services = [] } = useServices();
   const createTask = useCreateTask();
 
   const [logTimeModalOpen, setLogTimeModalOpen] = useState(false);
   const [createTaskModalOpen, setCreateTaskModalOpen] = useState(false);
+  const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false);
+  const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
 
   const handleLogTime = () => setLogTimeModalOpen(true);
   const handleNewTask = () => setCreateTaskModalOpen(true);
-  const handleNewProject = () => toast.info("New Project - Funcionalidad en desarrollo");
-  const handleAddMember = () => toast.info("Add Member - Funcionalidad en desarrollo");
+  const handleNewProject = () => setCreateProjectModalOpen(true);
+  const handleAddMember = () => setAddMemberModalOpen(true);
 
   const handleCreateTask = (data: any) => {
     createTask.mutate(data, {
@@ -103,6 +107,8 @@ const Dashboard = () => {
       {/* Modales */}
       <LogTimeModal open={logTimeModalOpen} onOpenChange={setLogTimeModalOpen} projects={projects} onSubmit={handleCreateTask} />
       <CreateTaskModal open={createTaskModalOpen} onOpenChange={setCreateTaskModalOpen} projects={projects} services={services} onSuccess={() => { refetchTasks(); setCreateTaskModalOpen(false); }} />
+      <CreateProjectModal open={createProjectModalOpen} onOpenChange={setCreateProjectModalOpen} onSuccess={() => { refetchProjects(); setCreateProjectModalOpen(false); }} />
+      <AddMemberModal open={addMemberModalOpen} onOpenChange={setAddMemberModalOpen} onSuccess={() => setAddMemberModalOpen(false)} />
     </DashboardLayout>
   );
 };
