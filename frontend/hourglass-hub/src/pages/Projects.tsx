@@ -26,7 +26,7 @@ import {
 import { ProjectDetailModal } from "@/components/projects/ProjectDetailModal";
 import { ProjectFormModal } from "@/components/projects/ProjectFormModal";
 import { cn } from "@/lib/utils";
-import { useProjects } from "@/hooks/useProjects";
+import { useProjects, useDeleteProject } from "@/hooks/useProjects";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -75,6 +75,7 @@ const statusConfig: Record<string, { label: string; class: string }> = {
 const Projects = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const queryClient = useQueryClient();
+  const deleteProjectMutation = useDeleteProject();
 
   // Estados para modales
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -95,7 +96,7 @@ const Projects = () => {
     return {
       id: item.id,
       name: item.name,
-      client: item.client?.name || "Sin cliente",
+      client: item.clients?.name || "Sin cliente",
       clientId: item.client_id,
       status: status as Project["status"],
       hoursPool,
@@ -137,25 +138,13 @@ const Projects = () => {
   };
 
   // Función para eliminar proyecto
-  const handleDeleteProject = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm("¿Estás seguro de que deseas eliminar este proyecto?")) return;
+  const handleDeleteProject = (id: string, e: React.MouseEvent) => {
+  e.stopPropagation();
+  
+  if (!window.confirm("¿Estás seguro de eliminar este proyecto? Si tiene tareas asociadas, no se podrá eliminar.")) return;
 
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast.success("Proyecto eliminado correctamente");
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-    } catch (error: any) {
-      console.error("Error al eliminar", error);
-      toast.error(`Error: ${error.message}`);
-    }
-  };
+  deleteProjectMutation.mutate(id);
+};
 
   return (
     <DashboardLayout>

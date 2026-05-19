@@ -73,6 +73,29 @@ export const useCreateTask = () => {
   });
 };
 
+// NUEVA MUTACIÓN: Crear múltiples tareas a la vez (para división por días)
+export const useCreateTasks = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (newTasks: any[]) => {
+      if (newTasks.length === 0) throw new Error('No tasks to create');
+      
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert(newTasks)
+        .select();
+      
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.refetchQueries({ queryKey: ['tasks'] });
+    },
+  });
+};
+
 export const useUpdateTask = () => {
   const queryClient = useQueryClient()
 
@@ -106,25 +129,19 @@ export const useDeleteTask = () => {
 
   return useMutation({
     mutationFn: async (taskId: string) => {
-      const { error } = await supabase.from('tasks').delete().eq('id', taskId)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      // Forzar recarga de TODAS las queries que empiecen con 'tasks'
-      queryClient.refetchQueries({
-        predicate: (query) => query.queryKey[0] === 'tasks'
-      })
-    },
-  })
-}
-
-export const useUpdateTask = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const { error } = await supabase.from('tasks').update(data).eq('id', id)
-      if (error) throw error
+      const { error, count } = await supabase
+        .from('tasks')
+        .delete({ count: 'exact' })
+        .eq('id', taskId);
+      
+      if (error) throw error;
+      
+      // Si no se eliminó ninguna fila, es por falta de permisos
+      if (count === 0) {
+        throw new Error('No tienes permisos para eliminar esta tarea');
+      }
+      
+      return true;
     },
     onSuccess: () => {
       queryClient.refetchQueries({

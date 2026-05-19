@@ -34,11 +34,14 @@ import {
   Users
 } from "lucide-react";
 import { TeamMemberFormModal } from "@/components/team/TeamMemberFormModal";
-import { useTeamMembers, TeamMember } from "@/hooks/useTeamMembers";
+import { useTeamMembers, useUpdateTeamMember, TeamMember } from "@/hooks/useTeamMembers";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Team() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: teamMembers = [], isLoading } = useTeamMembers({ searchQuery });
+  const updateMemberMutation = useUpdateTeamMember();
+  const { user, refreshProfile } = useAuth();
 
   const [suspendDialog, setSuspendDialog] = useState<{ open: boolean; member: TeamMember | null }>({
     open: false,
@@ -70,7 +73,30 @@ export default function Team() {
     setFormModal({ open: true, member: null });
   };
 
+  // Manejar envío del formulario (crear/editar)
   const handleFormSubmit = (data: any) => {
+    if (data.id) {
+      // Es una edición
+      updateMemberMutation.mutate({
+        id: data.id,
+        data: {
+          full_name: data.full_name || data.name,
+          email: data.email,
+          role: data.role === 'admin' ? 'Admin' : data.role === 'technician' ? 'Technician' : data.role,
+          avatar_url: data.avatar || undefined,
+        }
+      }, {
+        onSuccess: () => {
+          // Si editaste tu propio perfil, refrescar el contexto global
+          if (data.id === user?.id) {
+            refreshProfile();
+          }
+        }
+      });
+    } else {
+      // Es creación (requiere backend adicional para crear usuarios)
+      toast.info("La creación de usuarios requiere registro por email");
+    }
     setFormModal({ open: false, member: null });
   };
 
@@ -150,7 +176,7 @@ export default function Team() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Team</h1>
-            <p className="text-muted-foreground">Manage your team members and their roles</p>
+            <p className="text-muted-foreground">Gestiona los miembros de tu equipo y sus roles</p>
           </div>
         </div>
 
@@ -162,7 +188,7 @@ export default function Team() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{teamMembers.length}</p>
-                <p className="text-sm text-muted-foreground">Total Members</p>
+                <p className="text-sm text-muted-foreground">Total Miembros</p>
               </div>
             </CardContent>
           </Card>
@@ -173,7 +199,7 @@ export default function Team() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{admins.length}</p>
-                <p className="text-sm text-muted-foreground">Admins/Managers</p>
+                <p className="text-sm text-muted-foreground">Admin/Manager</p>
               </div>
             </CardContent>
           </Card>
@@ -184,7 +210,7 @@ export default function Team() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{technicians.length}</p>
-                <p className="text-sm text-muted-foreground">Technicians</p>
+                <p className="text-sm text-muted-foreground">Técnicos</p>
               </div>
             </CardContent>
           </Card>
@@ -193,7 +219,7 @@ export default function Team() {
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by name or email..."
+            placeholder="Buscar por nombre o email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"

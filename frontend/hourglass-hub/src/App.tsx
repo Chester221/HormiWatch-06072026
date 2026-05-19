@@ -15,7 +15,7 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Holidays from "./pages/Holidays";
-//import Reports from "./pages/Reports";
+import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -89,36 +89,36 @@ const App = () => (
               {/* La lógica de mostrar/ocultar está en el Sidebar */}
               {/* Los técnicos pueden acceder si conocen la URL, pero verán datos limitados */}
               <Route path="/projects" element={
-                <ProtectedRoute>
-                  <Projects />
-                </ProtectedRoute>
-              } />
-              <Route path="/clients" element={
-                <ProtectedRoute>
-                  <Clients />
-                </ProtectedRoute>
-              } />
-              <Route path="/team" element={
-                <ProtectedRoute>
-                  <Team />
-                </ProtectedRoute>
-              } />
-              <Route path="/services" element={
-                <ProtectedRoute>
-                  <Services />
-                </ProtectedRoute>
-              } />
-              <Route path="/holidays" element={
-                <ProtectedRoute>
-                  <Holidays />
-                </ProtectedRoute>
-              } />
-              {/* <Route path="/reports" element={
-                <ProtectedRoute>
-                  <Reports />
-                </ProtectedRoute>
-              } />
- */}
+  <ProtectedRoute requiredRole={['Manager', 'Admin']}>
+    <Projects />
+  </ProtectedRoute>
+} />
+<Route path="/clients" element={
+  <ProtectedRoute requiredRole={['Manager', 'Admin']}>
+    <Clients />
+  </ProtectedRoute>
+} />
+<Route path="/team" element={
+  <ProtectedRoute requiredRole={['Manager', 'Admin']}>
+    <Team />
+  </ProtectedRoute>
+} />
+<Route path="/services" element={
+  <ProtectedRoute requiredRole={['Manager', 'Admin']}>
+    <Services />
+  </ProtectedRoute>
+} />
+<Route path="/holidays" element={
+  <ProtectedRoute requiredRole={['Manager', 'Admin']}>
+    <Holidays />
+  </ProtectedRoute>
+} />
+<Route path="/reports" element={
+  <ProtectedRoute requiredRole={['Manager', 'Admin']}>
+    <Reports />
+  </ProtectedRoute>
+} />
+ 
 
               {/* Ruta 404 */}
               <Route path="*" element={<NotFound />} />

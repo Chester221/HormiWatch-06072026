@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export default function Profile() {
-    const { user, profile, updateProfile, uploadAvatar, isManager } = useAuth();
+    const { user, profile, updateProfile, uploadAvatar, isManager, refreshProfile } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [fullName, setFullName] = useState("");
@@ -66,18 +66,20 @@ export default function Profile() {
 
     // Guardar cambios del perfil
     const handleSaveProfile = async () => {
-        setIsSaving(true);
+    setIsSaving(true);
 
-        const { error } = await updateProfile({ full_name: fullName });
+    const { error } = await updateProfile({ full_name: fullName });
 
-        if (error) {
-            toast.error(`Error al guardar: ${error.message}`);
-        } else {
-            toast.success("Perfil actualizado correctamente");
-        }
+    if (error) {
+        toast.error(`Error al guardar: ${error.message}`);
+    } else {
+        // Refrescar el perfil en el contexto global
+        await refreshProfile();
+        toast.success("Perfil actualizado correctamente");
+    }
 
-        setIsSaving(false);
-    };
+    setIsSaving(false);
+};
 
     return (
         <DashboardLayout>

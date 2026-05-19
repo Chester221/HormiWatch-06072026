@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import type { UserRole } from '@/contexts/AuthContext'
+import { toast } from 'sonner'
 
 // Tipo para usuario/perfil
 export interface TeamMember {
@@ -25,7 +26,6 @@ export const useTeamMembers = (options?: {
                 .select('*')
                 .order('full_name', { ascending: true })
 
-            // Filtrar por rol si se especifica
             if (role && role !== 'all') {
                 query = query.eq('role', role)
             }
@@ -41,7 +41,6 @@ export const useTeamMembers = (options?: {
                 throw new Error(error.message)
             }
 
-            // Filtrar localmente si hay búsqueda
             let members = (data || []) as TeamMember[]
             if (searchQuery) {
                 const search = searchQuery.toLowerCase()
@@ -62,6 +61,42 @@ export const useTeamMembers = (options?: {
         queryKey: ['team_members', role, searchQuery],
         queryFn: fetchMembers,
         retry: false,
+    })
+}
+
+// Hook para actualizar un miembro del equipo
+export const useUpdateTeamMember = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({ id, data }: { id: string; data: Partial<TeamMember> }) => {
+            console.log('Actualizando miembro:', id, data)
+            
+            const { data: updated, error } = await supabase
+                .from('profiles')
+                .update({
+                    ...data,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', id)
+                .select()
+                .single()
+
+            if (error) {
+                console.error('Error al actualizar perfil:', error)
+                throw error
+            }
+            
+            return updated
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['team_members'] })
+            toast.success('Miembro actualizado correctamente')
+        },
+        onError: (error: any) => {
+            console.error('Error en mutación:', error)
+            toast.error(`Error al actualizar: ${error.message}`)
+        }
     })
 }
 

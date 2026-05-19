@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
+import { toast } from 'sonner';
 
-// Tipo para contacto de cliente (según estructura real)
 export interface ClientContact {
     id: string
     client_id: string
@@ -12,7 +12,6 @@ export interface ClientContact {
     created_at?: string
 }
 
-// Tipo para cliente (según estructura real)
 export interface Client {
     id: string
     name: string
@@ -23,21 +22,21 @@ export interface Client {
     updated_at?: string
 }
 
-// Tipo para cliente con contactos anidados
 export interface ClientWithContacts extends Client {
     contacts: ClientContact[]
 }
 
-// Hook para obtener todos los clientes con sus contactos
-export const useClientsWithContacts = (searchQuery?: string) => {
+export const useClientsWithContacts = (searchQuery?: string, showInactive: boolean = false) => {
     const fetchClientsWithContacts = async (): Promise<ClientWithContacts[]> => {
         try {
-            // Primero obtener clientes activos
             let clientsQuery = supabase
                 .from('clients')
                 .select('*')
-                .eq('is_active', true)
                 .order('name', { ascending: true })
+
+            if (!showInactive) {
+                clientsQuery = clientsQuery.eq('is_active', true)
+            }
 
             const { data: clientsData, error: clientsError } = await clientsQuery
 
@@ -50,7 +49,6 @@ export const useClientsWithContacts = (searchQuery?: string) => {
                 throw new Error(clientsError.message)
             }
 
-            // Luego obtener contactos
             const { data: contactsData, error: contactsError } = await supabase
                 .from('client_contacts')
                 .select('*')
@@ -62,13 +60,11 @@ export const useClientsWithContacts = (searchQuery?: string) => {
 
             const contacts = (contactsData || []) as ClientContact[]
 
-            // Mapear contactos a clientes
             let clients: ClientWithContacts[] = (clientsData || []).map((client: Client) => ({
                 ...client,
                 contacts: contacts.filter(c => c.client_id === client.id)
             }))
 
-            // Filtrar localmente si hay búsqueda
             if (searchQuery) {
                 const search = searchQuery.toLowerCase()
                 clients = clients.filter(c =>
@@ -86,13 +82,12 @@ export const useClientsWithContacts = (searchQuery?: string) => {
     }
 
     return useQuery({
-        queryKey: ['clients_with_contacts', searchQuery],
+        queryKey: ['clients_with_contacts', searchQuery, showInactive],
         queryFn: fetchClientsWithContacts,
         retry: false,
     })
 }
 
-// Hook para obtener todos los clientes (sin contactos)
 export const useClients = (searchQuery?: string) => {
     const fetchClients = async (): Promise<Client[]> => {
         try {
@@ -133,7 +128,6 @@ export const useClients = (searchQuery?: string) => {
     })
 }
 
-// Hook para obtener contactos de un cliente
 export const useClientContacts = (clientId: string | undefined) => {
     const fetchContacts = async (): Promise<ClientContact[]> => {
         if (!clientId) return []
@@ -169,7 +163,6 @@ export const useClientContacts = (clientId: string | undefined) => {
     })
 }
 
-// Datos para crear cliente
 interface CreateClientData {
     name: string
     ruc?: string
@@ -177,7 +170,6 @@ interface CreateClientData {
     is_active?: boolean
 }
 
-// Datos para crear contacto
 interface CreateContactData {
     client_id: string
     name: string
@@ -186,7 +178,6 @@ interface CreateContactData {
     position?: string
 }
 
-// Hook para crear cliente
 export const useCreateClient = () => {
     const queryClient = useQueryClient()
 
@@ -208,7 +199,6 @@ export const useCreateClient = () => {
     })
 }
 
-// Hook para actualizar cliente
 export const useUpdateClient = () => {
     const queryClient = useQueryClient()
 
@@ -231,13 +221,11 @@ export const useUpdateClient = () => {
     })
 }
 
-// Hook para eliminar cliente (soft delete)
 export const useDeleteClient = () => {
     const queryClient = useQueryClient()
 
     return useMutation({
         mutationFn: async (id: string) => {
-            // Soft delete - solo marcar como inactivo
             const { error } = await supabase
                 .from('clients')
                 .update({ is_active: false, updated_at: new Date().toISOString() })
@@ -252,7 +240,6 @@ export const useDeleteClient = () => {
     })
 }
 
-// Hook para crear contacto
 export const useCreateContact = () => {
     const queryClient = useQueryClient()
 
@@ -274,7 +261,6 @@ export const useCreateContact = () => {
     })
 }
 
-// Hook para eliminar contacto
 export const useDeleteContact = () => {
     const queryClient = useQueryClient()
 
@@ -294,7 +280,6 @@ export const useDeleteContact = () => {
     })
 }
 
-// Hook combinado para guardar cliente con contactos
 export const useSaveClientWithContacts = () => {
     const queryClient = useQueryClient()
 
@@ -311,7 +296,6 @@ export const useSaveClientWithContacts = () => {
             let clientId: string
 
             if (isEditing && client.id) {
-                // Actualizar cliente existente
                 const { error: updateError } = await supabase
                     .from('clients')
                     .update({
@@ -325,13 +309,11 @@ export const useSaveClientWithContacts = () => {
                 if (updateError) throw new Error(updateError.message)
                 clientId = client.id
 
-                // Eliminar contactos existentes
                 await supabase
                     .from('client_contacts')
                     .delete()
                     .eq('client_id', clientId)
             } else {
-                // Crear nuevo cliente
                 const { data: newClient, error: createError } = await supabase
                     .from('clients')
                     .insert({
@@ -347,7 +329,6 @@ export const useSaveClientWithContacts = () => {
                 clientId = newClient.id
             }
 
-            // Crear contactos
             if (contacts.length > 0) {
                 const contactsToInsert = contacts.map(c => ({
                     client_id: clientId,
@@ -370,6 +351,29 @@ export const useSaveClientWithContacts = () => {
             queryClient.invalidateQueries({ queryKey: ['clients'] })
             queryClient.invalidateQueries({ queryKey: ['clients_with_contacts'] })
             queryClient.invalidateQueries({ queryKey: ['client_contacts'] })
+        },
+    })
+}
+
+export const useReactivateClient = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase
+                .from('clients')
+                .update({ is_active: true, updated_at: new Date().toISOString() })
+                .eq('id', id)
+
+            if (error) throw new Error(error.message)
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['clients'] })
+            queryClient.invalidateQueries({ queryKey: ['clients_with_contacts'] })
+            toast.success('Cliente reactivado correctamente')
+        },
+        onError: (error: any) => {
+            toast.error(`Error al reactivar: ${error.message}`)
         },
     })
 }

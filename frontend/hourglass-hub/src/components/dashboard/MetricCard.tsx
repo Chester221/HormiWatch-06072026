@@ -51,7 +51,7 @@ export function MetricCard({
                 : "bg-destructive/10 text-destructive"
             )}>
               <span>{trend.positive ? "+" : ""}{trend.value}%</span>
-              <span>vs last week</span>
+              <span>vs semana pasada</span>
             </div>
           )}
         </div>

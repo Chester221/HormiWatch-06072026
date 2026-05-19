@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const actions = [
-  { label: "Log Time", icon: Clock, primary: true, action: "logTime" },
-  { label: "New Task", icon: Plus, primary: false, action: "newTask" },
-  { label: "New Project", icon: FolderPlus, primary: false, action: "newProject" },
-  { label: "Add Member", icon: UserPlus, primary: false, action: "addMember" },
+  { label: "Registrar Tiempo", icon: Clock, primary: true, action: "logTime" },
+  { label: "Nueva Tarea", icon: Plus, primary: false, action: "newTask" },
+  { label: "Nuevo Proyecto", icon: FolderPlus, primary: false, action: "newProject" },
+  { label: "Añadir Miembro", icon: UserPlus, primary: false, action: "addMember" },
 ];
 
 interface QuickActionsProps {
@@ -19,24 +19,16 @@ interface QuickActionsProps {
 export function QuickActions({ onLogTime, onNewTask, onNewProject, onAddMember }: QuickActionsProps) {
   const handleClick = (action: string) => {
     switch (action) {
-      case "logTime":
-        onLogTime();
-        break;
-      case "newTask":
-        onNewTask();
-        break;
-      case "newProject":
-        onNewProject();
-        break;
-      case "addMember":
-        onAddMember();
-        break;
+      case "logTime": onLogTime(); break;
+      case "newTask": onNewTask(); break;
+      case "newProject": onNewProject(); break;
+      case "addMember": onAddMember(); break;
     }
   };
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-card opacity-0 animate-fade-in" style={{ animationDelay: "300ms" }}>
-      <h3 className="mb-4 text-lg font-semibold text-foreground">Quick Actions</h3>
+      <h3 className="mb-4 text-lg font-semibold text-foreground">Acciones Rápidas</h3>
       <div className="grid grid-cols-2 gap-3">
         {actions.map((action, index) => (
           <Button
@@ -44,9 +36,7 @@ export function QuickActions({ onLogTime, onNewTask, onNewProject, onAddMember }
             variant={action.primary ? "default" : "outline"}
             className={cn(
               "h-auto flex-col gap-2 py-4 transition-all duration-200",
-              action.primary 
-                ? "bg-primary hover:bg-primary/90 shadow-glow" 
-                : "hover:bg-accent hover:border-primary/30",
+              action.primary ? "bg-primary hover:bg-primary/90 shadow-glow" : "hover:bg-accent hover:border-primary/30",
               "opacity-0 animate-fade-in"
             )}
             style={{ animationDelay: `${350 + index * 50}ms` }}

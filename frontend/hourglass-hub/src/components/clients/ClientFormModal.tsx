@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Plus, Trash2, User, Loader2 } from "lucide-react";
 import { z } from "zod";
-import { useSaveClientWithContacts, type ClientWithContacts } from "@/hooks/useClients";
+import { useSaveClientWithContacts, type ClientWithContacts } from "@/hooks/useClientes";
 
 interface LocalContact {
   id: string;

@@ -9,6 +9,15 @@ export interface Holiday {
     is_working_day: boolean;
 }
 
+// Helper para convertir fecha YYYY-MM-DD a ISO con mediodía UTC
+// Esto evita problemas de zona horaria
+const toUTCDateString = (dateStr: string): string => {
+    // Si ya tiene hora, usarla tal cual
+    if (dateStr.includes('T')) return dateStr;
+    // Agregar mediodía UTC para evitar desplazamiento de zona horaria
+    return `${dateStr}T12:00:00.000Z`;
+};
+
 export const useHolidays = () => {
     const queryClient = useQueryClient();
 
@@ -24,9 +33,17 @@ export const useHolidays = () => {
 
     const addHolidayMutation = useMutation({
         mutationFn: async (holiday: Omit<Holiday, 'id'>) => {
+            // Convertir la fecha a UTC con mediodía para evitar desplazamiento
+            const correctedHoliday = {
+                ...holiday,
+                date: toUTCDateString(holiday.date)
+            };
+            
+            console.log('Enviando feriado con fecha:', correctedHoliday.date);
+            
             const { data, error } = await (supabase as any)
                 .from('holidays')
-                .insert(holiday)
+                .insert(correctedHoliday)
                 .select()
                 .single();
             if (error) throw error;
@@ -60,28 +77,23 @@ export const useHolidays = () => {
 
     const syncHolidaysMutation = useMutation({
         mutationFn: async (year: number) => {
-            // 1. Fetch from Nager.Date API
-            // Costa Rica country code is CR
-            const response = await fetch(`https://date.nager.at/api/v3/publicholidays/${year}/CR`);
+            const response = await fetch(`https://date.nager.at/api/v3/publicholidays/${year}/VE`);
             if (!response.ok) throw new Error('Error fetching from public API');
 
             const publicHolidays = await response.json();
 
-            // 2. Transform to our schema
+            // Corregir las fechas a UTC con mediodía
             const holidaysToInsert = publicHolidays.map((h: any) => ({
-                date: h.date,
+                date: toUTCDateString(h.date),
                 name: h.localName,
-                is_working_day: false // Most public holidays are non-working
+                is_working_day: false
             }));
 
-            // 3. Insert into Supabase (upsert to avoid duplicates would be better, but basic insert is fine for now)
-            // Using upsert on date to avoid duplicates if table has unique constraint on date, 
-            // otherwise verify manually. Assuming date should be unique for holidays? 
-            // Let's try basic insert and catch errors if duplicates exist, or use upsert.
+            console.log('Sincronizando feriados:', holidaysToInsert);
 
             const { error } = await (supabase as any)
                 .from('holidays')
-                .upsert(holidaysToInsert, { onConflict: 'date', ignoreDuplicates: true }); // Requires unique constraint on date
+                .upsert(holidaysToInsert, { onConflict: 'date', ignoreDuplicates: true });
 
             if (error) throw error;
             return holidaysToInsert.length;

@@ -12,6 +12,9 @@ export interface UserProfile {
     avatar_url: string | null
     email: string | null
     role: UserRole
+    email_notifications?: boolean
+    task_reminders?: boolean
+    weekly_summary?: boolean
     created_at?: string
     updated_at?: string
 }
@@ -256,20 +259,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
 
-    const value = {
-        user,
-        session,
-        profile,
-        loading,
-        isManager,
-        error: authError, // Nuevo campo
-        signIn,
-        signUp,
-        signOut,
-        updateProfile,
-        uploadAvatar,
-        refreshProfile: initializeAuth, // Usar la misma función robusta
+    // Actualizar preferencias de notificaciones
+const updatePreferences = async (prefs: Partial<UserProfile>) => {
+    if (!user) return { error: new Error('No autenticado') }
+    const { error } = await supabase
+        .from('profiles')
+        .update(prefs)
+        .eq('id', user.id)
+    if (!error) {
+        setProfile(prev => prev ? { ...prev, ...prefs } : null)
     }
+    return { error }
+}
+
+    const value = {
+    user,
+    session,
+    profile,
+    loading,
+    isManager,
+    error: authError,
+    signIn,
+    signUp,
+    signOut,
+    updateProfile,
+    uploadAvatar,
+    refreshProfile: initializeAuth,
+    updatePreferences, // ← AGREGAR ESTA LÍNEA
+}
 
     // UI de Bloqueo por Error Crítico en Auth
     if (authError && !loading) {

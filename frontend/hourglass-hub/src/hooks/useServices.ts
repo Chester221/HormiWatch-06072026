@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 
 export interface Service {
   id: string;
@@ -102,6 +103,7 @@ export const useUpdateService = () => {
 };
 
 // Eliminar servicio
+// Eliminar servicio
 export const useDeleteService = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -110,10 +112,22 @@ export const useDeleteService = () => {
         .from('services')
         .delete()
         .eq('id', id);
-      if (error) throw new Error(error.message);
+      
+      if (error) {
+        if (error.message?.includes('foreign key constraint')) {
+          throw new Error('No puedes eliminar este servicio porque tiene tareas asociadas. Elimina o reasigna las tareas primero.');
+        }
+        throw new Error(error.message);
+      }
+      
+      return true;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
+      toast.success('Servicio eliminado correctamente');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 };

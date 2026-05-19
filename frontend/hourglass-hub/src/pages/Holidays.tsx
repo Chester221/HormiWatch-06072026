@@ -152,7 +152,7 @@ export default function Holidays() {
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-2">
                                                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                                                    {format(new Date(holiday.date), "d 'de' MMMM, yyyy", { locale: es })}
+                                                    {format(new Date(holiday.date + 'T12:00:00'), "d 'de' MMMM, yyyy", { locale: es })}
                                                 </div>
                                             </TableCell>
                                             <TableCell>{holiday.name}</TableCell>
