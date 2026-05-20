@@ -82,7 +82,7 @@ export default function Team() {
         data: {
           full_name: data.full_name || data.name,
           email: data.email,
-          role: data.role === 'admin' ? 'Admin' : data.role === 'technician' ? 'Technician' : data.role,
+          role: data.role === 'admin' ? 'Admin' : data.role === 'technician' ? 'Technician' : data.role === 'viewer' ? 'Viewer' : data.role, // Validar rol
           avatar_url: data.avatar || undefined,
         }
       }, {

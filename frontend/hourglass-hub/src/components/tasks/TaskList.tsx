@@ -43,8 +43,8 @@ export function TaskList({ tasks, onTaskClick, onEditTask, onDeleteTask }: TaskL
     return (
       <div className="rounded-2xl border border-border bg-card p-12 text-center">
         <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold text-foreground mb-2">No tasks found</h3>
-        <p className="text-muted-foreground">Start logging time to see your tasks here.</p>
+        <h3 className="text-lg font-semibold text-foreground mb-2">No se encontraron tareas</h3>
+<p className="text-muted-foreground">Registra horas para ver tus tareas aquí.</p>
       </div>
     );
   }

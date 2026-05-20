@@ -3,7 +3,7 @@ import { User, Session, AuthError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 
 // Tipos de roles - coinciden con la base de datos
-export type UserRole = 'Technician' | 'Manager' | 'Admin'
+export type UserRole = 'Technician' | 'Manager' | 'Admin' | 'Viewer'
 
 // Tipo del perfil del usuario
 export interface UserProfile {
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         email: userData.email,
                         full_name: userData.user_metadata?.full_name || userData.email?.split('@')[0],
                         avatar_url: userData.user_metadata?.avatar_url,
-                        role: 'Manager' as UserRole, // Manager por defecto
+                        role: 'Viewer' as UserRole, // Viewer por defecto (solo ver)
                         updated_at: new Date().toISOString(),
                     };
 

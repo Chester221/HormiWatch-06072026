@@ -31,8 +31,8 @@ async function debug() {
 
             const newProfile = {
                 id: userId,
-                email: "richardael14@gmail.com",
-                full_name: "Richard Echenique",
+                email: "galletasdechocolates666@gmail.com",
+                full_name: "Gregorio Hidalgo",
                 role: 'Manager',
                 updated_at: new Date().toISOString(),
             };

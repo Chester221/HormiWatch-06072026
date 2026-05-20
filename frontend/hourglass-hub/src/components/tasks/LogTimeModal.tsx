@@ -53,8 +53,8 @@ export function LogTimeModal({ open, onOpenChange, onSubmit, projects: propProje
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
       date: new Date(),
-      startTime: "08:00",
-      endTime: "17:00",
+      startTime: "06:00",
+endTime: "18:00",
       projectId: "",
       serviceId: "",
       completed: false,
@@ -66,8 +66,8 @@ export function LogTimeModal({ open, onOpenChange, onSubmit, projects: propProje
   if (open) {
     form.reset({
       date: new Date(),
-      startTime: "08:00",
-      endTime: "17:00",
+      startTime: "06:00",
+endTime: "18:00",
       projectId: "",
       serviceId: "",
       completed: false,
@@ -176,26 +176,26 @@ export function LogTimeModal({ open, onOpenChange, onSubmit, projects: propProje
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                   <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
                     <p className="text-xs font-medium text-foreground">Tarifas automáticas</p>
-                    <div className="grid grid-cols-3 gap-1.5 text-[11px]">
-                      <div className="text-center p-1.5 rounded bg-green-500/5 border border-green-500/10">
-                        <Sun className="h-3 w-3 text-green-500 mx-auto mb-0.5" />
-                        <p className="font-medium text-green-600">Normal</p>
-                        <p className="text-muted-foreground">8AM-5PM</p>
-                        <p className="text-green-600 font-medium">×1</p>
-                      </div>
-                      <div className="text-center p-1.5 rounded bg-amber-500/5 border border-amber-500/10">
-                        <Moon className="h-3 w-3 text-amber-500 mx-auto mb-0.5" />
-                        <p className="font-medium text-amber-600">Extra</p>
-                        <p className="text-muted-foreground">5PM-7AM</p>
-                        <p className="text-amber-600 font-medium">×1.5</p>
-                      </div>
-                      <div className="text-center p-1.5 rounded bg-red-500/5 border border-red-500/10">
-                        <CalendarIcon className="h-3 w-3 text-red-500 mx-auto mb-0.5" />
-                        <p className="font-medium text-red-600">Finde/Feriado</p>
-                        <p className="text-muted-foreground">Todo el día</p>
-                        <p className="text-red-600 font-medium">×2</p>
-                      </div>
-                    </div>
+                      <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+  <div className="text-center p-1.5 rounded bg-green-500/5 border border-green-500/10">
+    <Sun className="h-3 w-3 text-green-500 mx-auto mb-0.5" />
+    <p className="font-medium text-green-600">Normal</p>
+    <p className="text-muted-foreground">6AM-7PM</p>
+    <p className="text-green-600 font-medium">×1</p>
+  </div>
+  <div className="text-center p-1.5 rounded bg-amber-500/5 border border-amber-500/10">
+    <Moon className="h-3 w-3 text-amber-500 mx-auto mb-0.5" />
+    <p className="font-medium text-amber-600">Extra</p>
+    <p className="text-muted-foreground">7PM-6AM</p>
+    <p className="text-amber-600 font-medium">×1.5</p>
+  </div>
+  <div className="text-center p-1.5 rounded bg-red-500/5 border border-red-500/10">
+    <CalendarIcon className="h-3 w-3 text-red-500 mx-auto mb-0.5" />
+    <p className="font-medium text-red-600">Sáb/Dom/Fer</p>
+    <p className="text-muted-foreground">×1.5 / ×2</p>
+    <p className="text-red-600 font-medium">×1.5-2</p>
+  </div>
+</div>
                   </div>
                 </motion.div>
               )}
