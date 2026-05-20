@@ -30,14 +30,16 @@ import { toast } from "sonner";
 import { Loader2, Upload, User } from "lucide-react";
 
 const memberSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(8, "Phone number must be at least 8 characters"),
-  cedula: z.string().min(5, "Cédula must be at least 5 characters"),
-  role: z.enum(["admin", "technician"], {
-    required_error: "Please select a role",
+  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+  email: z.string().email("Email inválido"),
+  phone: z.string().min(8, "Teléfono debe tener al menos 8 caracteres"),
+  cedula: z.string().min(5, "Cédula debe tener al menos 5 caracteres"),
+  role: z.enum(["admin", "technician", "manager", "viewer"], {
+    required_error: "Por favor elecciona un rol",
   }),
 });
+
+
 
 type MemberFormData = z.infer<typeof memberSchema>;
 
@@ -47,7 +49,7 @@ export interface TeamMember {
   email: string;
   phone: string;
   cedula: string;
-  role: "admin" | "technician";
+  role: "admin" | "technician" | "manager" | "viewer";
   avatar?: string;
   isSuspended: boolean;
 }
@@ -84,7 +86,7 @@ export function TeamMemberFormModal({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image must be less than 5MB");
+        toast.error("La imagen debe ser menor a 5MB");
         return;
       }
       const reader = new FileReader();
@@ -108,12 +110,12 @@ export function TeamMemberFormModal({
         id: member?.id,
         avatar: avatarPreview,
       });
-      toast.success(member ? "Team member updated successfully" : "Team member added successfully");
+      toast.success(member ? "Miembro actualizado correctamente" : "Miembro agregado correctamente");
       onOpenChange(false);
       form.reset();
       setAvatarPreview(undefined);
     } catch (error) {
-      toast.error("Something went wrong");
+      toast.error("Algo salió mal");
     } finally {
       setIsSubmitting(false);
     }
@@ -150,7 +152,7 @@ export function TeamMemberFormModal({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {member ? "Edit Team Member" : "Add Team Member"}
+            {member ? "Editar Miembro" : "Agregar Miembro"}
           </DialogTitle>
         </DialogHeader>
 
@@ -179,7 +181,7 @@ export function TeamMemberFormModal({
                 className="gap-2"
               >
                 <Upload className="h-4 w-4" />
-                Upload Photo
+                Subir Foto
               </Button>
             </div>
 
@@ -189,7 +191,7 @@ export function TeamMemberFormModal({
                 name="name"
                 render={({ field }) => (
                   <FormItem className="sm:col-span-2">
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>Nombre Completo</FormLabel>
                     <FormControl>
                       <Input placeholder="John Doe" {...field} />
                     </FormControl>
@@ -203,7 +205,7 @@ export function TeamMemberFormModal({
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Correo</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="john@example.com" {...field} />
                     </FormControl>
@@ -217,7 +219,7 @@ export function TeamMemberFormModal({
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone</FormLabel>
+                    <FormLabel>Teléfono</FormLabel>
                     <FormControl>
                       <Input placeholder="+506 8888-1234" {...field} />
                     </FormControl>
@@ -245,16 +247,18 @@ export function TeamMemberFormModal({
                 name="role"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Role</FormLabel>
+                    <FormLabel>Rol</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select role" />
+                          <SelectValue placeholder="Seleccionar rol" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="technician">Technician</SelectItem>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value="manager">Líder</SelectItem>
+                        <SelectItem value="technician">Técnico</SelectItem>
+                        <SelectItem value="viewer">Visitante</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -269,11 +273,11 @@ export function TeamMemberFormModal({
                 variant="outline"
                 onClick={() => handleOpenChange(false)}
               >
-                Cancel
+                Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting} className="gap-2">
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {member ? "Update Member" : "Add Member"}
+                {member ? "Subir Miembro" : "Agregar Miembro"}
               </Button>
             </div>
           </form>
