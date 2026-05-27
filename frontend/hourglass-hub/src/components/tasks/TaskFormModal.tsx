@@ -79,7 +79,7 @@ export function TaskFormModal({ open, onOpenChange, task, projectId }: TaskFormM
         const hourlyRate = selectedService?.default_hourly_rate || 0;
 
         const payload = {
-            description: data.description,
+            description: data.motivo ? `[${data.motivo}] ${data.description || ''}` : data.description,
             project_id: projectId,
             service_id: data.service_id,
             technician_id: user?.id, // FORZAR el usuario autenticado

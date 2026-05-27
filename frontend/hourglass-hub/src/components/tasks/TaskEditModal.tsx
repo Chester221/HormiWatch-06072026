@@ -21,18 +21,20 @@ interface TaskEditModalProps {
   task: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: (updatedData: any) => void; // CAMBIADO: ahora recibe los datos
+  onSuccess: (updatedData: any) => void;
 }
 
 export function TaskEditModal({ task, open, onOpenChange, onSuccess }: TaskEditModalProps) {
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('Pending');
+  const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (task) {
       setDescription(task.description || '');
       setStatus(task.status || 'Pending');
+      setNotes(task.notes || '');
     }
   }, [task]);
 
@@ -42,14 +44,13 @@ export function TaskEditModal({ task, open, onOpenChange, onSuccess }: TaskEditM
     
     setIsSubmitting(true);
     
-    // Solo enviamos campos que existen en la tabla tasks
     const updatedData = { 
       description, 
       status,
+      notes,
       updated_at: new Date().toISOString()
     };
     
-    // Llamamos a onSuccess con los datos, el padre se encarga de la mutación
     onSuccess(updatedData);
     onOpenChange(false);
     setIsSubmitting(false);
@@ -72,6 +73,18 @@ export function TaskEditModal({ task, open, onOpenChange, onSuccess }: TaskEditM
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Descripción de la tarea"
               rows={3}
+              className="bg-background"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Observaciones</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Observaciones sobre la tarea..."
+              rows={2}
               className="bg-background"
             />
           </div>

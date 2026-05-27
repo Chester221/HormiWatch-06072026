@@ -12,18 +12,25 @@ export interface ClientContact {
     created_at?: string
 }
 
+export interface ClientWithContacts extends Client {
+    contacts: ClientContact[]
+}
+
 export interface Client {
     id: string
     name: string
     ruc: string | null
     address: string | null
     is_active: boolean
+    logo_url?: string | null
+    code?: string | null
+    department?: string | null
+    position?: string | null
+    phone?: string | null
+    channel?: string | null
+    management?: string | null
     created_at?: string
     updated_at?: string
-}
-
-export interface ClientWithContacts extends Client {
-    contacts: ClientContact[]
 }
 
 export const useClientsWithContacts = (searchQuery?: string, showInactive: boolean = false) => {

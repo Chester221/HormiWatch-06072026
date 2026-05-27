@@ -80,11 +80,13 @@ export default function Team() {
       updateMemberMutation.mutate({
         id: data.id,
         data: {
-          full_name: data.full_name || data.name,
-          email: data.email,
-          role: data.role === 'admin' ? 'Admin' : data.role === 'technician' ? 'Technician' : data.role === 'viewer' ? 'Viewer' : data.role, // Validar rol
-          avatar_url: data.avatar || undefined,
-        }
+  full_name: data.full_name || data.name,
+  email: data.email,
+  role: data.role === 'admin' ? 'Admin' : data.role === 'technician' ? 'Technician' : data.role === 'viewer' ? 'Viewer' : data.role,
+  phone: data.phone,
+  cedula: data.cedula,
+  avatar_url: data.avatar || undefined,
+}
       }, {
         onSuccess: () => {
           // Si editaste tu propio perfil, refrescar el contexto global

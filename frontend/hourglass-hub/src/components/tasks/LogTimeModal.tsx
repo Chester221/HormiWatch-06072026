@@ -29,6 +29,7 @@ const taskFormSchema = z.object({
   serviceId: z.string().min(1, "Selecciona un servicio"),
   completed: z.boolean().default(false),
   description: z.string().optional(),
+  motivo: z.string().optional(),
 });
 
 type TaskFormValues = z.infer<typeof taskFormSchema>;
@@ -54,40 +55,38 @@ export function LogTimeModal({ open, onOpenChange, onSubmit, projects: propProje
     defaultValues: {
       date: new Date(),
       startTime: "06:00",
-endTime: "18:00",
+      endTime: "18:00",
       projectId: "",
       serviceId: "",
       completed: false,
       description: "",
+      motivo: "",
     },
   });
 
   useEffect(() => {
-  if (open) {
-    form.reset({
-      date: new Date(),
-      startTime: "06:00",
-endTime: "18:00",
-      projectId: "",
-      serviceId: "",
-      completed: false,
-      description: "",
-    });
-    // Forzar validación después de reset
-    setTimeout(() => {
-      form.trigger("date");
-    }, 100);
-  }
-}, [open, form]);
-
+    if (open) {
+      form.reset({
+        date: new Date(),
+        startTime: "06:00",
+        endTime: "18:00",
+        projectId: "",
+        serviceId: "",
+        completed: false,
+        description: "",
+        motivo: "",
+      });
+      setTimeout(() => {
+        form.trigger("date");
+      }, 100);
+    }
+  }, [open, form]);
 
   const handleSubmit = async (data: TaskFormValues) => {
-    // Permitir cruce de medianoche (ej: 17:00 → 07:00)
     const startH = parseInt(data.startTime.split(':')[0]);
     const endH = parseInt(data.endTime.split(':')[0]);
     const isNextDay = endH < startH || (endH === startH && data.endTime <= data.startTime);
     
-    // Solo error si es el mismo día y la hora fin es menor/igual
     if (!isNextDay && data.startTime >= data.endTime) {
       toast.error("La hora de inicio debe ser menor a la hora de fin");
       return;
@@ -105,13 +104,11 @@ endTime: "18:00",
   const service = services.find(s => s.id === watchedServiceId);
   const rate = service?.default_hourly_rate || 0;
 
-  // Detectar si es fin de semana o feriado
   const isWeekend = watchedDate ? (watchedDate.getDay() === 0 || watchedDate.getDay() === 6) : false;
   const dateStr = watchedDate ? format(watchedDate, "yyyy-MM-dd") : "";
   const isHoliday = holidays.data?.some(h => h.date === dateStr && !h.is_working_day) || false;
   const isSpecialDay = isWeekend || isHoliday;
 
-  // Calcular desglose con división por días
   let taskBreakdown = null;
   if (watchedStartTime && watchedEndTime && rate > 0 && watchedDate) {
     const startH = parseInt(watchedStartTime.split(':')[0]);
@@ -139,7 +136,6 @@ endTime: "18:00",
     );
   }
 
-  // Detectar tipo de jornada
   const getJornadaInfo = () => {
     if (!taskBreakdown) return { label: "", color: "", icon: null };
     if (taskBreakdown.hasHoliday || taskBreakdown.hasWeekend)
@@ -165,7 +161,6 @@ endTime: "18:00",
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
-            {/* Info de tarifas */}
             <Button type="button" variant="ghost" size="sm" className="w-full text-xs text-muted-foreground gap-1" onClick={() => setShowInfo(!showInfo)}>
               <Info className="h-3 w-3" />
               {showInfo ? "Ocultar tarifas" : "Ver tarifas"}
@@ -176,64 +171,51 @@ endTime: "18:00",
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                   <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
                     <p className="text-xs font-medium text-foreground">Tarifas automáticas</p>
-                      <div className="grid grid-cols-3 gap-1.5 text-[11px]">
-  <div className="text-center p-1.5 rounded bg-green-500/5 border border-green-500/10">
-    <Sun className="h-3 w-3 text-green-500 mx-auto mb-0.5" />
-    <p className="font-medium text-green-600">Normal</p>
-    <p className="text-muted-foreground">6AM-7PM</p>
-    <p className="text-green-600 font-medium">×1</p>
-  </div>
-  <div className="text-center p-1.5 rounded bg-amber-500/5 border border-amber-500/10">
-    <Moon className="h-3 w-3 text-amber-500 mx-auto mb-0.5" />
-    <p className="font-medium text-amber-600">Extra</p>
-    <p className="text-muted-foreground">7PM-6AM</p>
-    <p className="text-amber-600 font-medium">×1.5</p>
-  </div>
-  <div className="text-center p-1.5 rounded bg-red-500/5 border border-red-500/10">
-    <CalendarIcon className="h-3 w-3 text-red-500 mx-auto mb-0.5" />
-    <p className="font-medium text-red-600">Sáb/Dom/Fer</p>
-    <p className="text-muted-foreground">×1.5 / ×2</p>
-    <p className="text-red-600 font-medium">×1.5-2</p>
-  </div>
-</div>
+                    <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+                      <div className="text-center p-1.5 rounded bg-green-500/5 border border-green-500/10">
+                        <Sun className="h-3 w-3 text-green-500 mx-auto mb-0.5" />
+                        <p className="font-medium text-green-600">Normal</p>
+                        <p className="text-muted-foreground">6AM-7PM</p>
+                        <p className="text-green-600 font-medium">×1</p>
+                      </div>
+                      <div className="text-center p-1.5 rounded bg-amber-500/5 border border-amber-500/10">
+                        <Moon className="h-3 w-3 text-amber-500 mx-auto mb-0.5" />
+                        <p className="font-medium text-amber-600">Extra</p>
+                        <p className="text-muted-foreground">7PM-6AM</p>
+                        <p className="text-amber-600 font-medium">×1.5</p>
+                      </div>
+                      <div className="text-center p-1.5 rounded bg-red-500/5 border border-red-500/10">
+                        <CalendarIcon className="h-3 w-3 text-red-500 mx-auto mb-0.5" />
+                        <p className="font-medium text-red-600">Sáb/Dom/Fer</p>
+                        <p className="text-muted-foreground">×1.5 / ×2</p>
+                        <p className="text-red-600 font-medium">×1.5-2</p>
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Date Picker */}
             <FormField control={form.control} name="date" render={({ field }) => (
-  <FormItem className="flex flex-col">
-    <FormLabel className="text-foreground">Fecha</FormLabel>
-    <Popover>
-      <PopoverTrigger asChild>
-        <FormControl>
-          <Button variant="outline" className={cn(
-            "w-full pl-3 text-left font-normal bg-muted/50 border-border",
-            !field.value && "text-muted-foreground"
-          )}>
-            {field.value ? format(field.value, "PPP") : "Selecciona una fecha"}
-            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-          </Button>
-        </FormControl>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
-        <Calendar
-          mode="single"
-          selected={field.value}
-          onSelect={(date) => {
-            field.onChange(date);
-            form.trigger("date"); // Validar inmediatamente
-          }}
-          initialFocus
-        />
-      </PopoverContent>
-    </Popover>
-    <FormMessage />
-  </FormItem>
-)} />
+              <FormItem className="flex flex-col">
+                <FormLabel className="text-foreground">Fecha</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button variant="outline" className={cn("w-full pl-3 text-left font-normal bg-muted/50 border-border", !field.value && "text-muted-foreground")}>
+                        {field.value ? format(field.value, "PPP") : "Selecciona una fecha"}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+                    <Calendar mode="single" selected={field.value} onSelect={(date) => { field.onChange(date); form.trigger("date"); }} initialFocus />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )} />
 
-            {/* Time Inputs */}
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="startTime" render={({ field }) => (
                 <FormItem><FormLabel className="text-foreground">Hora Inicio</FormLabel><FormControl><Input type="time" className="bg-muted/50 border-border" {...field} /></FormControl><FormMessage /></FormItem>
@@ -243,7 +225,6 @@ endTime: "18:00",
               )} />
             </div>
 
-            {/* Badge de jornada detectada */}
             {jornada.label && (
               <Badge variant="outline" className={cn("text-xs gap-1", jornada.color)}>
                 {jornada.icon} {jornada.label}
@@ -251,18 +232,14 @@ endTime: "18:00",
               </Badge>
             )}
 
-            {/* Desglose por días */}
             <AnimatePresence>
               {taskBreakdown && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                   <div className="rounded-xl border border-border bg-gradient-to-br from-card to-muted/20 p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-primary" />
-                      <p className="text-sm font-semibold">
-                        Desglose{taskBreakdown.days.length > 1 ? ` · ${taskBreakdown.days.length} días` : ''}
-                      </p>
+                      <p className="text-sm font-semibold">Desglose{taskBreakdown.days.length > 1 ? ` · ${taskBreakdown.days.length} días` : ''}</p>
                     </div>
-
                     {taskBreakdown.days.map((day, i) => (
                       <div key={i} className="space-y-1.5 p-2 rounded-lg bg-muted/10">
                         <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -289,36 +266,38 @@ endTime: "18:00",
                         </div>
                       </div>
                     ))}
-
                     <div className="flex justify-between pt-2 border-t border-border">
-                      <span className="font-semibold text-sm">
-                        Total · {taskBreakdown.grandTotalHours}h
-                      </span>
-                      <span className="text-lg font-bold text-primary">
-                        ${taskBreakdown.grandTotalPay.toFixed(2)}
-                      </span>
+                      <span className="font-semibold text-sm">Total · {taskBreakdown.grandTotalHours}h</span>
+                      <span className="text-lg font-bold text-primary">${taskBreakdown.grandTotalPay.toFixed(2)}</span>
                     </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Project */}
             <FormField control={form.control} name="projectId" render={({ field }) => (
               <FormItem><FormLabel>Proyecto</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Selecciona un proyecto" /></SelectTrigger></FormControl><SelectContent className="bg-card border-border max-h-[200px]">{projectsList.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
             )} />
 
-            {/* Service */}
             <FormField control={form.control} name="serviceId" render={({ field }) => (
               <FormItem><FormLabel>Servicio</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Selecciona un servicio" /></SelectTrigger></FormControl><SelectContent className="bg-card border-border max-h-[200px]">{services.map(s => <SelectItem key={s.id} value={s.id}>{s.name} (${s.default_hourly_rate}/hr)</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
             )} />
 
-            {/* Description */}
+            {/* ✅ NUEVO: Motivo */}
+            <FormField control={form.control} name="motivo" render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-foreground">Motivo</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ej: Mantenimiento, Soporte, Revisión..." className="bg-muted/50 border-border" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+
             <FormField control={form.control} name="description" render={({ field }) => (
               <FormItem><FormLabel>Descripción</FormLabel><FormControl><Input placeholder="Detalles..." className="bg-muted/50 border-border" {...field} /></FormControl><FormMessage /></FormItem>
             )} />
 
-            {/* Completed */}
             <FormField control={form.control} name="completed" render={({ field }) => (
               <FormItem className="flex items-center justify-between rounded-xl border border-border bg-muted/50 p-4"><div><FormLabel className="font-medium">Completada</FormLabel></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
             )} />

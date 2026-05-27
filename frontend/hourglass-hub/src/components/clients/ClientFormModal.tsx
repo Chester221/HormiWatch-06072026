@@ -15,6 +15,7 @@ interface LocalContact {
   email: string;
   phone: string;
   position: string;
+  department: string;  // ← AGREGAR
 }
 
 interface ClientFormModalProps {
@@ -59,12 +60,13 @@ export function ClientFormModal({ open, onOpenChange, client }: ClientFormModalP
           ruc: client.ruc || "",
         });
         setContacts(client.contacts.map(c => ({
-          id: c.id,
-          name: c.name,
-          email: c.email || "",
-          phone: c.phone || "",
-          position: c.position || "",
-        })));
+  id: c.id,
+  name: c.name,
+  email: c.email || "",
+  phone: c.phone || "",
+  position: c.position || "",
+  department: (c as any).department || "",  // ← AGREGAR
+})));
       } else {
         setFormData({ name: "", address: "", ruc: "" });
         setContacts([]);
@@ -73,13 +75,14 @@ export function ClientFormModal({ open, onOpenChange, client }: ClientFormModalP
     }
   }, [client, open]);
 
-  const addContact = () => {
+    const addContact = () => {
     const newContact: LocalContact = {
       id: `new-${Date.now()}`,
       name: "",
       email: "",
       phone: "",
       position: "",
+      department: "",
     };
     setContacts([...contacts, newContact]);
   };
@@ -129,11 +132,12 @@ export function ClientFormModal({ open, onOpenChange, client }: ClientFormModalP
           ruc: formData.ruc || undefined,
         },
         contacts: validContacts.map(c => ({
-          name: c.name,
-          email: c.email || undefined,
-          phone: c.phone || undefined,
-          position: c.position || undefined,
-        })),
+  name: c.name,
+  email: c.email || undefined,
+  phone: c.phone || undefined,
+  position: c.position || undefined,
+  department: c.department || undefined,  // ← AGREGAR
+})),
         isEditing,
       });
 
@@ -146,7 +150,7 @@ export function ClientFormModal({ open, onOpenChange, client }: ClientFormModalP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0 bg-card border-border">
+      <DialogContent className="max-w-2xl max-h-[95vh] p-0 bg-card border-border">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="text-xl">
             {isEditing ? "Editar Cliente" : "Nuevo Cliente"}
@@ -154,7 +158,7 @@ export function ClientFormModal({ open, onOpenChange, client }: ClientFormModalP
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <ScrollArea className="max-h-[calc(90vh-160px)] px-6">
+          <ScrollArea className="max-h-[calc(95vh-140px)] px-6">  
             <div className="space-y-6 pb-6">
               {/* Company Information */}
               <div className="space-y-4">
@@ -255,45 +259,28 @@ export function ClientFormModal({ open, onOpenChange, client }: ClientFormModalP
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="space-y-1.5">
-                            <Label className="text-xs">Nombre *</Label>
-                            <Input
-                              value={contact.name}
-                              onChange={(e) => updateContact(contact.id, "name", e.target.value)}
-                              placeholder="Nombre completo"
-                              className="h-9 bg-card border-border"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-xs">Cargo</Label>
-                            <Input
-                              value={contact.position}
-                              onChange={(e) => updateContact(contact.id, "position", e.target.value)}
-                              placeholder="Ej: Gerente General"
-                              className="h-9 bg-card border-border"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-xs">Teléfono</Label>
-                            <Input
-                              value={contact.phone}
-                              onChange={(e) => updateContact(contact.id, "phone", e.target.value)}
-                              placeholder="+506 0000-0000"
-                              className="h-9 bg-card border-border"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-xs">Email</Label>
-                            <Input
-                              type="email"
-                              value={contact.email}
-                              onChange={(e) => updateContact(contact.id, "email", e.target.value)}
-                              placeholder="contacto@empresa.com"
-                              className="h-9 bg-card border-border"
-                            />
-                          </div>
-                        </div>
+                        <div className="grid gap-3 sm:grid-cols-3">
+  <div className="space-y-1.5">
+    <Label className="text-xs">Nombre *</Label>
+    <Input value={contact.name} onChange={(e) => updateContact(contact.id, "name", e.target.value)} placeholder="Nombre completo" className="h-9 bg-card border-border" />
+  </div>
+  <div className="space-y-1.5">
+    <Label className="text-xs">Cargo</Label>
+    <Input value={contact.position} onChange={(e) => updateContact(contact.id, "position", e.target.value)} placeholder="Ej: Gerente General" className="h-9 bg-card border-border" />
+  </div>
+  <div className="space-y-1.5">
+    <Label className="text-xs">Departamento</Label>
+    <Input value={contact.department} onChange={(e) => updateContact(contact.id, "department", e.target.value)} placeholder="Ej: Ventas, TI, RRHH" className="h-9 bg-card border-border" />
+  </div>
+  <div className="space-y-1.5">
+    <Label className="text-xs">Teléfono</Label>
+    <Input value={contact.phone} onChange={(e) => updateContact(contact.id, "phone", e.target.value)} placeholder="+506 0000-0000" className="h-9 bg-card border-border" />
+  </div>
+  <div className="space-y-1.5">
+    <Label className="text-xs">Email</Label>
+    <Input type="email" value={contact.email} onChange={(e) => updateContact(contact.id, "email", e.target.value)} placeholder="contacto@empresa.com" className="h-9 bg-card border-border" />
+  </div>
+</div>
                       </div>
                     ))}
                   </div>

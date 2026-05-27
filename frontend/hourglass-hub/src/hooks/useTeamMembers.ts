@@ -10,6 +10,8 @@ export interface TeamMember {
     email: string | null
     avatar_url: string | null
     role: UserRole
+    phone?: string | null
+    cedula?: string | null
 }
 
 // Hook para obtener usuarios por rol

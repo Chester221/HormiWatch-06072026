@@ -64,7 +64,7 @@ const Dashboard = () => {
       technician_id: user.id,
       start_time: `${day.date}T${data.startTime}:00`,
       end_time: `${day.date}T${data.endTime}:00`,
-      description: data.description,
+      description: data.motivo ? `[${data.motivo}] ${data.description || ''}` : data.description,
       status: data.completed ? 'Completed' : 'Pending',
       priority: 'Medium',
       applied_hourly_rate: hourlyRate,

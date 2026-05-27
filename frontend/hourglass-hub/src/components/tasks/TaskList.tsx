@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, CheckCircle2, Circle, Calendar, MoreVertical, Pencil, Trash2, Sun, Moon, ChevronDown, ChevronRight } from "lucide-react";
+import { Clock, CheckCircle2, Circle, Calendar, MoreVertical, Pencil, Trash2, Sun, Moon, ChevronDown, ChevronRight, FileText } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,7 @@ interface TaskListProps {
   onTaskClick?: (task: Task) => void;
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (taskId: string) => void;
+  onExportPDF?: (task: Task) => void;
 }
 
 const serviceTypeColors: Record<string, string> = {
@@ -26,7 +27,7 @@ const serviceTypeColors: Record<string, string> = {
   maintenance: "bg-slate-500/10 text-slate-600 border-slate-500/20",
 };
 
-export function TaskList({ tasks, onTaskClick, onEditTask, onDeleteTask }: TaskListProps) {
+export function TaskList({ tasks, onTaskClick, onEditTask, onDeleteTask, onExportPDF }: TaskListProps) {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
   const toggleExpand = (taskId: string, e: React.MouseEvent) => {
@@ -44,7 +45,7 @@ export function TaskList({ tasks, onTaskClick, onEditTask, onDeleteTask }: TaskL
       <div className="rounded-2xl border border-border bg-card p-12 text-center">
         <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold text-foreground mb-2">No se encontraron tareas</h3>
-<p className="text-muted-foreground">Registra horas para ver tus tareas aquí.</p>
+        <p className="text-muted-foreground">Registra horas para ver tus tareas aquí.</p>
       </div>
     );
   }
@@ -160,6 +161,9 @@ export function TaskList({ tasks, onTaskClick, onEditTask, onDeleteTask }: TaskL
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-card border-border w-40">
+                  <DropdownMenuItem className="cursor-pointer gap-2 text-xs" onClick={(e) => { e.stopPropagation(); onExportPDF?.(task); }}>
+                    <FileText className="h-3.5 w-3.5" /> Exportar Excel
+                  </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer gap-2 text-xs" onClick={(e) => { e.stopPropagation(); onEditTask?.(task); }}>
                     <Pencil className="h-3.5 w-3.5" /> Editar
                   </DropdownMenuItem>
