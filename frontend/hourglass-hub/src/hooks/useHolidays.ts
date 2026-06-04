@@ -79,7 +79,7 @@ export const useHolidays = () => {
         mutationFn: async (year: number) => {
             const response = await fetch(`https://date.nager.at/api/v3/publicholidays/${year}/VE`);
             if (!response.ok) throw new Error('Error fetching from public API');
-
+            
             const publicHolidays = await response.json();
 
             // Corregir las fechas a UTC con mediodía

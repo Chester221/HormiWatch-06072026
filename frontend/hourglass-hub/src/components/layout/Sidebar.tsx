@@ -125,7 +125,7 @@ export function Sidebar() {
             <p className="text-xs text-sidebar-muted">
               {profile?.full_name || "Usuario"}
             </p>
-            <p className="text-xs text-sidebar-muted">© 2024 Hormiwatch</p>
+            <p className="text-xs text-sidebar-muted">© 2026 Hormiwatch</p>
           </div>
         </div>
       </div>

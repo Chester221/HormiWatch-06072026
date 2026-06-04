@@ -382,7 +382,7 @@
                                   <div className="flex flex-col">
                                     <span>{client.name}</span>
                                     {client.ruc && (
-                                      <span className="text-xs text-muted-foreground">RUC: {client.ruc}</span>
+                                      <span className="text-xs text-muted-foreground">RIF: {client.ruc}</span>
                                     )}
                                   </div>
                                 </SelectItem>

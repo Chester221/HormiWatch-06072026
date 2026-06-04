@@ -266,7 +266,7 @@ const downloadGraphicPDF = () => {
               <div className="rounded-xl border bg-card p-4">
                 <h4 className="font-semibold mb-3 flex items-center gap-2"><Calendar className="h-4 w-4 text-primary" />Línea de Tiempo</h4>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><p className="text-xs text-muted-foreground">Inicio</p><p className="font-medium">{new Date(project.startDate || "2024-01-15").toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}</p></div>
+                  <div><p className="text-xs text-muted-foreground">Inicio</p><p className="font-medium">{new Date(project.startDate || "2026-01-15").toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}</p></div>
                   <div><p className="text-xs text-muted-foreground">Fin</p><p className="font-medium">{new Date(project.endDate).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}</p></div>
                 </div>
               </div>
