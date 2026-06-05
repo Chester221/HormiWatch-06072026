@@ -16,18 +16,16 @@ const Auth = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
 
-  // Estado Login
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
-  // Estado Registro (simplificado)
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
 
-  // Redirigir si ya está logueado
   useEffect(() => {
     if (!authLoading && user) {
       const from = (location.state as any)?.from?.pathname || "/";
@@ -35,25 +33,18 @@ const Auth = () => {
     }
   }, [user, authLoading, navigate, location]);
 
-  // ---------------------------------------------------------
-  // MANEJO DE LOGIN
-  // ---------------------------------------------------------
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!loginEmail || !loginPassword) {
       toast.error("Por favor completa todos los campos");
       return;
     }
-
     setIsLoading(true);
-
     try {
       const { error } = await signIn(loginEmail, loginPassword);
-
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
-          toast.error("Credenciales incorrectas. Verifica tu email y contraseña.");
+          toast.error("Credenciales incorrectas.");
         } else if (error.message.includes("Email not confirmed")) {
           toast.error("Por favor confirma tu email antes de iniciar sesión.");
         } else {
@@ -61,72 +52,52 @@ const Auth = () => {
         }
         return;
       }
-
       toast.success("¡Bienvenido de nuevo!");
-      // La redirección se maneja en el useEffect
-
     } catch (error: any) {
-      console.error("Error login:", error);
       toast.error("Error de conexión. Intenta de nuevo.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ---------------------------------------------------------
-  // MANEJO DE REGISTRO
-  // ---------------------------------------------------------
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!signupName || !signupEmail || !signupPassword) {
       toast.error("Por favor completa todos los campos");
       return;
     }
-
     if (signupPassword !== signupConfirmPassword) {
       toast.error("Las contraseñas no coinciden");
       return;
     }
-
     if (signupPassword.length < 6) {
       toast.error("La contraseña debe tener al menos 6 caracteres");
       return;
     }
-
     setIsLoading(true);
-
     try {
-      const { error } = await signUp(signupEmail, signupPassword, {
-        full_name: signupName,
-      });
-
+      const { error } = await signUp(signupEmail, signupPassword, { full_name: signupName });
       if (error) {
         if (error.message.includes("already registered")) {
-          toast.error("Este email ya está registrado. Intenta iniciar sesión.");
+          toast.error("Este email ya está registrado. Inicia sesión.");
         } else {
           toast.error(error.message);
         }
         return;
       }
-
-      toast.success("¡Cuenta creada! Revisa tu email para confirmar tu cuenta.");
-
-      // Limpiar formulario
+      toast.success("¡Cuenta creada! Ahora inicia sesión.");
       setSignupName("");
       setSignupEmail("");
       setSignupPassword("");
       setSignupConfirmPassword("");
-
+      setActiveTab("login");
     } catch (error: any) {
-      console.error("Error registro:", error);
-      toast.error("Error al crear la cuenta. Intenta de nuevo.");
+      toast.error("Error al crear la cuenta.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Si está cargando auth, mostrar spinner
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -137,48 +108,27 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Panel Izquierdo - Branding y Marketing */}
       <div className="hidden lg:flex lg:w-1/2 bg-sidebar relative overflow-hidden">
-        {/* Patrón de Fondo */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-72 h-72 rounded-full bg-primary blur-3xl" />
           <div className="absolute bottom-32 right-20 w-96 h-96 rounded-full bg-primary/50 blur-3xl" />
         </div>
-
         <div className="relative z-10 flex flex-col justify-center px-16 py-12">
-          {/* Logo */}
           <div className="flex items-center gap-3 mb-12">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-glow">
               <Clock className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold text-sidebar-primary-foreground">
-              Hormiwatch
-            </span>
+            <span className="text-2xl font-bold text-sidebar-primary-foreground">Hormiwatch</span>
           </div>
-
-          {/* Eslogan */}
           <h1 className="text-4xl font-bold text-sidebar-primary-foreground mb-4 leading-tight">
-            Controla tu tiempo,
-            <br />
-            <span className="text-primary">impulsa tu productividad</span>
+            Controla tu tiempo,<br /><span className="text-primary">impulsa tu productividad</span>
           </h1>
           <p className="text-lg text-sidebar-foreground max-w-md mb-8">
-            La forma moderna de gestionar proyectos, registrar horas y colaborar con tu equipo técnico de manera eficiente.
+            La forma moderna de gestionar proyectos, registrar horas y colaborar con tu equipo.
           </p>
-
-          {/* Lista de características */}
           <div className="space-y-4">
-            {[
-              "Seguimiento de proyectos en tiempo real",
-              "Herramientas de colaboración para equipos",
-              "Métricas detalladas y reportes",
-              "Gestión de usuarios y roles"
-            ].map((feature, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-3 text-sidebar-foreground opacity-0 animate-fade-in"
-                style={{ animationDelay: `${index * 150}ms` }}
-              >
+            {["Seguimiento de proyectos en tiempo real", "Herramientas de colaboración para equipos", "Métricas detalladas y reportes", "Gestión de usuarios y roles"].map((feature, index) => (
+              <div key={index} className="flex items-center gap-3 text-sidebar-foreground opacity-0 animate-fade-in" style={{ animationDelay: `${index * 150}ms` }}>
                 <div className="h-2 w-2 rounded-full bg-primary" />
                 <span>{feature}</span>
               </div>
@@ -187,10 +137,8 @@ const Auth = () => {
         </div>
       </div>
 
-      {/* Panel Derecho - Formularios */}
       <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
         <div className="w-full max-w-md">
-          {/* Logo Móvil */}
           <div className="flex items-center gap-3 mb-8 lg:hidden justify-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-glow">
               <Clock className="h-5 w-5 text-primary-foreground" />
@@ -199,204 +147,59 @@ const Auth = () => {
           </div>
 
           <Card className="border-border bg-card shadow-card">
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <CardHeader className="pb-4">
                 <TabsList className="grid w-full grid-cols-2 bg-muted">
-                  <TabsTrigger
-                    value="login"
-                    className="data-[state=active]:bg-card data-[state=active]:shadow-sm"
-                  >
-                    Iniciar Sesión
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="signup"
-                    className="data-[state=active]:bg-card data-[state=active]:shadow-sm"
-                  >
-                    Registrarse
-                  </TabsTrigger>
+                  <TabsTrigger value="login" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">Iniciar Sesión</TabsTrigger>
+                  <TabsTrigger value="signup" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">Registrarse</TabsTrigger>
                 </TabsList>
               </CardHeader>
 
-              {/* ---------------- LOGIN TAB ---------------- */}
               <TabsContent value="login" className="mt-0">
                 <CardHeader className="pt-0 pb-2">
                   <CardTitle className="text-xl">Bienvenido de nuevo</CardTitle>
-                  <CardDescription>
-                    Ingresa tus credenciales para acceder a tu cuenta
-                  </CardDescription>
+                  <CardDescription>Ingresa tus credenciales para acceder</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="login-email">Correo Electrónico</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="login-email"
-                          type="email"
-                          placeholder="tu@empresa.com"
-                          value={loginEmail}
-                          onChange={(e) => setLoginEmail(e.target.value)}
-                          className="pl-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card"
-                        />
-                      </div>
+                      <div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input id="login-email" type="email" placeholder="tu@empresa.com" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="pl-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card" /></div>
                     </div>
-
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="login-password">Contraseña</Label>
-                      </div>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="login-password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          value={loginPassword}
-                          onChange={(e) => setLoginPassword(e.target.value)}
-                          className="pl-10 pr-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
+                      <Label htmlFor="login-password">Contraseña</Label>
+                      <div className="relative"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input id="login-password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="pl-10 pr-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card" /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div>
                     </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full gap-2 shadow-glow"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          Entrar
-                          <ArrowRight className="h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
+                    <Button type="submit" className="w-full gap-2 shadow-glow" disabled={isLoading}>{isLoading ? <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : <>Entrar <ArrowRight className="h-4 w-4" /></>}</Button>
                   </form>
                 </CardContent>
               </TabsContent>
 
-              {/* ---------------- SIGNUP TAB ---------------- */}
               <TabsContent value="signup" className="mt-0">
                 <CardHeader className="pt-0 pb-2">
                   <CardTitle className="text-xl">Crear una cuenta</CardTitle>
-                  <CardDescription>
-                    Comienza gratis hoy mismo completando tus datos
-                  </CardDescription>
+                  <CardDescription>Comienza gratis hoy mismo</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSignup} className="space-y-4">
-
-                    {/* Nombre Completo */}
                     <div className="space-y-2">
                       <Label htmlFor="signup-name">Nombre Completo</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="signup-name"
-                          placeholder="Juan Pérez"
-                          value={signupName}
-                          onChange={(e) => setSignupName(e.target.value)}
-                          className="pl-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card"
-                        />
-                      </div>
+                      <div className="relative"><User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input id="signup-name" placeholder="Juan Pérez" value={signupName} onChange={e => setSignupName(e.target.value)} className="pl-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card" /></div>
                     </div>
-
-                    {/* Email */}
                     <div className="space-y-2">
                       <Label htmlFor="signup-email">Correo Electrónico</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="signup-email"
-                          type="email"
-                          placeholder="juan@empresa.com"
-                          value={signupEmail}
-                          onChange={(e) => setSignupEmail(e.target.value)}
-                          className="pl-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card"
-                        />
-                      </div>
+                      <div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input id="signup-email" type="email" placeholder="juan@empresa.com" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} className="pl-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card" /></div>
                     </div>
-
-                    {/* Password */}
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Contraseña</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="signup-password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Mínimo 6 caracteres"
-                          value={signupPassword}
-                          onChange={(e) => setSignupPassword(e.target.value)}
-                          className="pl-10 pr-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
+                      <div className="relative"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="Mínimo 6 caracteres" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} className="pl-10 pr-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card" /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div>
                     </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="signup-confirm">Confirmar Contraseña</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="signup-confirm"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Repite tu contraseña"
-                          value={signupConfirmPassword}
-                          onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                          className="pl-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card"
-                        />
-                      </div>
+                      <div className="relative"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input id="signup-confirm" type={showPassword ? "text" : "password"} placeholder="Repite tu contraseña" value={signupConfirmPassword} onChange={e => setSignupConfirmPassword(e.target.value)} className="pl-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card" /></div>
                     </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full gap-2 shadow-glow"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          Crear Cuenta
-                          <ArrowRight className="h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-
-                    <p className="text-xs text-center text-muted-foreground">
-                      Al crear una cuenta, aceptas nuestros{" "}
-                      <button type="button" className="text-primary hover:underline">
-                        Términos de Servicio
-                      </button>{" "}
-                      y{" "}
-                      <button type="button" className="text-primary hover:underline">
-                        Política de Privacidad
-                      </button>
-                    </p>
+                    <Button type="submit" className="w-full gap-2 shadow-glow" disabled={isLoading}>{isLoading ? <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : <>Crear Cuenta <ArrowRight className="h-4 w-4" /></>}</Button>
+                    <p className="text-xs text-center text-muted-foreground">Al crear una cuenta, aceptas nuestros <button type="button" className="text-primary hover:underline">Términos</button> y <button type="button" className="text-primary hover:underline">Privacidad</button></p>
                   </form>
                 </CardContent>
               </TabsContent>
