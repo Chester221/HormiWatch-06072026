@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { ServiceFormModal } from "@/components/services/ServiceFormModal";
 import { useServices, useDeleteService, type Service } from "@/hooks/useServices";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Services() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -41,24 +42,34 @@ export default function Services() {
     service: null,
   });
 
-  // Obtener servicios desde Supabase
-  const servicesQuery = useServices(searchQuery);
-const services = servicesQuery.data || [];
-const isLoading = servicesQuery.isLoading;
-const refetch = servicesQuery.refetch;
+  const { profile } = useAuth();
+  const userRole = profile?.role;
+  const isAdmin = userRole === 'Admin';
+  const isManager = userRole === 'Manager';
 
-console.log("🔍 Servicios query:", servicesQuery);
+  // ✅ Solo Manager puede crear/editar/eliminar (Admin solo lectura)
+  const canEdit = isManager;
+  const canCreate = isManager;
+  const canDelete = isManager;
+
+  const servicesQuery = useServices(searchQuery);
+  const services = servicesQuery.data || [];
+  const isLoading = servicesQuery.isLoading;
+  const refetch = servicesQuery.refetch;
   const deleteServiceMutation = useDeleteService();
 
   const handleEdit = (service: Service) => {
+    if (!canEdit) return;
     setFormModal({ open: true, service });
   };
 
   const handleAdd = () => {
+    if (!canCreate) return;
     setFormModal({ open: true, service: null });
   };
 
   const handleDelete = async (service: Service) => {
+    if (!canDelete) return;
     if (!confirm(`¿Estás seguro de eliminar el servicio "${service.name}"?`)) return;
 
     try {
@@ -77,7 +88,6 @@ console.log("🔍 Servicios query:", servicesQuery);
     }
   };
 
-  // Calcular estadísticas
   const uniqueCategories = [...new Set(services.map((s) => s.categories?.name || 'Uncategorized'))];
   const totalServices = services.length;
 
@@ -92,10 +102,13 @@ console.log("🔍 Servicios query:", servicesQuery);
               Gestiona tu catálogo de servicios y tarifas
             </p>
           </div>
-          <Button onClick={handleAdd} className="gap-2 shadow-glow">
-            <Plus className="h-4 w-4" />
-            Nuevo Servicio
-          </Button>
+          {/* ✅ Solo Manager puede crear nuevos servicios */}
+          {canCreate && (
+            <Button onClick={handleAdd} className="gap-2 shadow-glow">
+              <Plus className="h-4 w-4" />
+              Nuevo Servicio
+            </Button>
+          )}
         </div>
 
         {/* Stats */}
@@ -106,9 +119,7 @@ console.log("🔍 Servicios query:", servicesQuery);
                 <Wrench className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">
-                  {totalServices}
-                </p>
+                <p className="text-2xl font-bold text-foreground">{totalServices}</p>
                 <p className="text-sm text-muted-foreground">Total Servicios</p>
               </div>
             </CardContent>
@@ -119,9 +130,7 @@ console.log("🔍 Servicios query:", servicesQuery);
                 <Layers className="h-6 w-6 text-accent-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">
-                  {uniqueCategories.length}
-                </p>
+                <p className="text-2xl font-bold text-foreground">{uniqueCategories.length}</p>
                 <p className="text-sm text-muted-foreground">Categorías</p>
               </div>
             </CardContent>
@@ -149,13 +158,14 @@ console.log("🔍 Servicios query:", servicesQuery);
                   <TableHead className="font-semibold">Categoría</TableHead>
                   <TableHead className="font-semibold">Descripción</TableHead>
                   <TableHead className="font-semibold">Tarifa por Hora</TableHead>
-                  <TableHead className="w-[70px]"></TableHead>
+                  {/* ✅ Solo Manager muestra columna de acciones */}
+                  {canEdit && <TableHead className="w-[70px]"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
+                    <TableCell colSpan={canEdit ? 5 : 4} className="h-24 text-center">
                       <div className="flex justify-center items-center">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                       </div>
@@ -184,49 +194,47 @@ console.log("🔍 Servicios query:", servicesQuery);
                       <TableCell>
                         <span className="font-medium flex items-center gap-1 text-green-600 dark:text-green-400">
                           <DollarSign className="h-3.5 w-3.5" />
-{service.default_hourly_rate ? service.default_hourly_rate.toFixed(2) : '0.00'}
+                          {service.default_hourly_rate ? service.default_hourly_rate.toFixed(2) : '0.00'}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40 bg-card border-border">
-                            <DropdownMenuItem onClick={() => handleEdit(service)} className="cursor-pointer">
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(service)}
-                              className="text-destructive focus:text-destructive cursor-pointer"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Eliminar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                      {/* ✅ Solo Manager puede editar/eliminar */}
+                      {canEdit && (
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40 bg-card border-border">
+                              <DropdownMenuItem onClick={() => handleEdit(service)} className="cursor-pointer">
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(service)}
+                                className="text-destructive focus:text-destructive cursor-pointer"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Eliminar
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="h-32 text-center text-muted-foreground"
-                    >
+                    <TableCell colSpan={canEdit ? 5 : 4} className="h-32 text-center text-muted-foreground">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <FileText className="h-8 w-8 text-muted-foreground/50" />
                         <p>No se encontraron servicios</p>
-                        <Button variant="link" onClick={handleAdd} className="h-auto p-0 text-primary">
-                          Crear el primero
-                        </Button>
+                        {canCreate && (
+                          <Button variant="link" onClick={handleAdd} className="h-auto p-0 text-primary">
+                            Crear el primero
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

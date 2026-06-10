@@ -14,7 +14,7 @@ import {
 import {
   Building2, MapPin, Search, Plus, ChevronDown, Phone, Mail, User,
   Pencil, Trash2, Loader2, FileText, RefreshCw, AlertTriangle, ShieldOff,
-  FolderKanban, Briefcase, ExternalLink
+  FolderKanban, Briefcase
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClientsWithContacts, useDeleteClient, useReactivateClient, type ClientWithContacts } from "@/hooks/useClientes";
@@ -22,7 +22,6 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 
-// Componente para renderizar una tarjeta de cliente
 function ClientCard({ client, expandedClients, toggleClient, handleEditClient, handleDeleteClick, reactivateClientMutation, index }: any) {
   return (
     <Collapsible open={expandedClients.includes(client.id)} onOpenChange={() => toggleClient(client.id)}>
@@ -58,10 +57,7 @@ function ClientCard({ client, expandedClients, toggleClient, handleEditClient, h
                 )}
                 <Button variant="ghost" size="sm" onClick={(e) => handleEditClient(client, e)} className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></Button>
                 <Button variant="ghost" size="sm" onClick={(e) => handleDeleteClick(client, e)} className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                <motion.div
-                  animate={{ rotate: expandedClients.includes(client.id) ? 180 : 0 }}
-                  transition={{ duration: 0.3 }}
-                >
+                <motion.div animate={{ rotate: expandedClients.includes(client.id) ? 180 : 0 }} transition={{ duration: 0.3 }}>
                   <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground" />
                 </motion.div>
               </div>
@@ -69,25 +65,14 @@ function ClientCard({ client, expandedClients, toggleClient, handleEditClient, h
           </CardHeader>
         </CollapsibleTrigger>
         <CollapsibleContent asChild>
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: "easeInOut" }}>
             <CardContent className="border-t border-border/50 pt-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-medium text-muted-foreground">Contactos</h4>
                   {client.address && (
-                    <a
-                      href={`https://www.google.com/maps/place/${encodeURIComponent(client.address)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
-                    >
-                      <MapPin className="h-3 w-3" />
-                      Maps
+                    <a href={`https://www.google.com/maps/place/${encodeURIComponent(client.address)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors">
+                      <MapPin className="h-3 w-3" /> Maps
                     </a>
                   )}
                 </div>
@@ -97,35 +82,12 @@ function ClientCard({ client, expandedClients, toggleClient, handleEditClient, h
                   <div className="grid gap-2">
                     {client.contacts.map((contact: any) => (
                       <div key={contact.id} className="rounded-xl bg-muted/30 p-3 transition-colors hover:bg-muted/50">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <User className="h-4 w-4 text-primary/70 shrink-0" />
-                          <p className="font-medium text-foreground text-sm">{contact.name}</p>
-                        </div>
+                        <div className="flex items-center gap-2 mb-1.5"><User className="h-4 w-4 text-primary/70 shrink-0" /><p className="font-medium text-foreground text-sm">{contact.name}</p></div>
                         <div className="flex flex-wrap gap-x-4 gap-y-1 ml-6">
-                          {contact.position && (
-                            <div className="flex items-center gap-1.5">
-                              <Briefcase className="h-3 w-3 text-muted-foreground shrink-0" />
-                              <p className="text-xs text-muted-foreground">{contact.position}</p>
-                            </div>
-                          )}
-                          {(contact as any).department && (
-                            <div className="flex items-center gap-1.5">
-                              <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
-                              <p className="text-xs text-muted-foreground">{(contact as any).department}</p>
-                            </div>
-                          )}
-                          {contact.email && (
-                            <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${contact.email}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
-                              <Mail className="h-3 w-3 shrink-0" />
-                              <span className="truncate max-w-[200px]">{contact.email}</span>
-                            </a>
-                          )}
-                          {contact.phone && (
-                            <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
-                              <Phone className="h-3 w-3 shrink-0" />
-                              {contact.phone}
-                            </a>
-                          )}
+                          {contact.position && <div className="flex items-center gap-1.5"><Briefcase className="h-3 w-3 text-muted-foreground shrink-0" /><p className="text-xs text-muted-foreground">{contact.position}</p></div>}
+                          {(contact as any).department && <div className="flex items-center gap-1.5"><Building2 className="h-3 w-3 text-muted-foreground shrink-0" /><p className="text-xs text-muted-foreground">{(contact as any).department}</p></div>}
+                          {contact.email && <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${contact.email}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"><Mail className="h-3 w-3 shrink-0" /><span className="truncate max-w-[200px]">{contact.email}</span></a>}
+                          {contact.phone && <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"><Phone className="h-3 w-3 shrink-0" />{contact.phone}</a>}
                         </div>
                       </div>
                     ))}
@@ -157,15 +119,9 @@ export default function Clients() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [inactiveCount, setInactiveCount] = useState(0);
 
+  // ✅ Contar inactivos desde el hook, no con query extra
   useEffect(() => {
-    const fetchInactiveCount = async () => {
-      const { count } = await supabase
-        .from('clients')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', false);
-      setInactiveCount(count || 0);
-    };
-    fetchInactiveCount();
+    setInactiveCount(clients.filter(c => c.is_active === false).length);
   }, [clients]);
 
   const activeClients = clients.filter(c => c.is_active !== false);
@@ -181,12 +137,12 @@ export default function Clients() {
   const handleDeleteClick = async (client: any, e: React.MouseEvent) => {
     e.stopPropagation();
     if (client.is_active === false) {
+      // ✅ Verificar proyectos activos (todos los estados excepto Completed/Cancelled)
       const { data: projects } = await supabase
         .from('projects')
         .select('id, name, status')
         .eq('client_id', client.id)
-        .neq('status', 'Completed')
-        .neq('status', 'Cancelled');
+        .not('status', 'in', '("Completed","Cancelled")');
       
       if (projects && projects.length > 0) {
         setCannotDeleteDialog({ open: true, clientName: client.name, projectCount: projects.length });
@@ -206,40 +162,53 @@ export default function Clients() {
     } catch (error: any) { toast.error(`Error: ${error.message}`); }
   };
 
+  // ✅ Verificar de nuevo antes de eliminar
   const confirmDelete = async () => {
     setIsDeleting(true);
     try {
-      await supabase.from('client_contacts').delete().eq('client_id', deleteDialog.clientId);
-      await supabase.from('clients').delete().eq('id', deleteDialog.clientId);
+      // Verificar proyectos activos una última vez
+      const { data: projects } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('client_id', deleteDialog.clientId)
+        .not('status', 'in', '("Completed","Cancelled")');
+      
+      if (projects && projects.length > 0) {
+        toast.error(`No se puede eliminar: tiene ${projects.length} proyecto(s) activos`);
+        setDeleteDialog({ open: false, clientId: '', clientName: '' });
+        setIsDeleting(false);
+        return;
+      }
+
+      // Eliminar contactos
+      const { error: contactsError } = await supabase.from('client_contacts').delete().eq('client_id', deleteDialog.clientId);
+      if (contactsError) throw new Error(`Error al eliminar contactos: ${contactsError.message}`);
+
+      // Eliminar cliente
+      const { error: clientError } = await supabase.from('clients').delete().eq('id', deleteDialog.clientId);
+      if (clientError) throw new Error(`Error al eliminar cliente: ${clientError.message}`);
+
       toast.success(`"${deleteDialog.clientName}" eliminado`);
       setDeleteDialog({ open: false, clientId: '', clientName: '' });
       refetch();
-    } catch (error: any) { toast.error(`Error: ${error.message}`); }
+    } catch (error: any) { 
+      toast.error(error.message || 'Error al eliminar');
+    }
     setIsDeleting(false);
   };
 
   const handleModalClose = (open: boolean) => { setIsModalOpen(open); if (!open) refetch(); };
 
-  // Separar clientes en columna izquierda (pares) y derecha (impares)
   const leftClients = clients.filter((_, i) => i % 2 === 0);
   const rightClients = clients.filter((_, i) => i % 2 === 1);
 
-  const cardProps = {
-    expandedClients,
-    toggleClient,
-    handleEditClient,
-    handleDeleteClick,
-    reactivateClientMutation,
-  };
+  const cardProps = { expandedClients, toggleClient, handleEditClient, handleDeleteClick, reactivateClientMutation };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between opacity-0 animate-fade-in">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Clientes</h1>
-            <p className="text-muted-foreground">Gestiona tu directorio de clientes y contactos</p>
-          </div>
+          <div><h1 className="text-3xl font-bold text-foreground">Clientes</h1><p className="text-muted-foreground">Gestiona tu directorio de clientes y contactos</p></div>
           <Button onClick={handleAddClient} className="gap-2 shadow-glow"><Plus className="h-4 w-4" />Nuevo Cliente</Button>
         </div>
 
@@ -249,15 +218,10 @@ export default function Clients() {
         </div>
 
         <div className="flex items-center gap-4 opacity-0 animate-fade-in" style={{ animationDelay: "150ms" }}>
-          <div className="relative max-w-md flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar por nombre, dirección o RIF..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card" />
-          </div>
+          <div className="relative max-w-md flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input placeholder="Buscar por nombre, dirección o RIF..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 bg-muted/50 border-transparent focus:border-primary focus:bg-card" /></div>
           <div className="flex items-center gap-2">
             <Switch id="inactive" checked={showInactive} onCheckedChange={setShowInactive} disabled={inactiveCount === 0 && !showInactive} />
-            <Label htmlFor="inactive" className={`text-sm whitespace-nowrap ${inactiveCount === 0 && !showInactive ? 'text-muted-foreground/40 cursor-not-allowed' : 'text-muted-foreground cursor-pointer'}`}>
-              Ver inactivos {inactiveCount > 0 && `(${inactiveCount})`}
-            </Label>
+            <Label htmlFor="inactive" className={`text-sm whitespace-nowrap ${inactiveCount === 0 && !showInactive ? 'text-muted-foreground/40 cursor-not-allowed' : 'text-muted-foreground cursor-pointer'}`}>Ver inactivos {inactiveCount > 0 && `(${inactiveCount})`}</Label>
           </div>
         </div>
 
@@ -267,18 +231,8 @@ export default function Clients() {
           <Card className="border-dashed"><CardContent className="flex flex-col items-center justify-center py-12"><Building2 className="h-12 w-12 text-muted-foreground/50" /><h3 className="mt-4 text-lg font-medium text-foreground">No se encontraron clientes</h3></CardContent></Card>
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
-            {/* Columna izquierda: índices pares (0, 2, 4...) */}
-            <div className="flex flex-col gap-4">
-              {leftClients.map((client, index) => (
-                <ClientCard key={client.id} client={client} {...cardProps} index={index * 2} />
-              ))}
-            </div>
-            {/* Columna derecha: índices impares (1, 3, 5...) */}
-            <div className="flex flex-col gap-4">
-              {rightClients.map((client, index) => (
-                <ClientCard key={client.id} client={client} {...cardProps} index={index * 2 + 1} />
-              ))}
-            </div>
+            <div className="flex flex-col gap-4">{leftClients.map((client, index) => <ClientCard key={client.id} client={client} {...cardProps} index={index * 2} />)}</div>
+            <div className="flex flex-col gap-4">{rightClients.map((client, index) => <ClientCard key={client.id} client={client} {...cardProps} index={index * 2 + 1} />)}</div>
           </div>
         )}
       </div>
@@ -288,13 +242,8 @@ export default function Clients() {
         <DialogContent className="sm:max-w-md bg-card border-border p-0 overflow-hidden">
           <div className="bg-gradient-to-r from-amber-500/10 to-amber-500/5 p-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/20 ring-4 ring-amber-500/10">
-                <ShieldOff className="h-6 w-6 text-amber-500" />
-              </div>
-              <div>
-                <DialogTitle className="text-lg font-semibold text-foreground">Desactivar Cliente</DialogTitle>
-                <p className="text-sm text-muted-foreground mt-0.5">El cliente se ocultará de la lista principal</p>
-              </div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/20 ring-4 ring-amber-500/10"><ShieldOff className="h-6 w-6 text-amber-500" /></div>
+              <div><DialogTitle className="text-lg font-semibold text-foreground">Desactivar Cliente</DialogTitle><p className="text-sm text-muted-foreground mt-0.5">El cliente se ocultará de la lista principal</p></div>
             </div>
           </div>
           <div className="p-6 pt-4">
@@ -303,9 +252,7 @@ export default function Clients() {
           </div>
           <DialogFooter className="p-4 pt-0 gap-2">
             <Button variant="outline" onClick={() => setDeactivateDialog({ open: false, clientId: '', clientName: '' })} className="flex-1">Cancelar</Button>
-            <Button onClick={confirmDeactivate} disabled={deleteClientMutation.isPending} className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-medium">
-              {deleteClientMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <ShieldOff className="h-4 w-4 mr-1.5" />}Desactivar
-            </Button>
+            <Button onClick={confirmDeactivate} disabled={deleteClientMutation.isPending} className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-medium">{deleteClientMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <ShieldOff className="h-4 w-4 mr-1.5" />}Desactivar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -315,13 +262,8 @@ export default function Clients() {
         <DialogContent className="sm:max-w-md bg-card border-border p-0 overflow-hidden">
           <div className="bg-gradient-to-r from-red-500/10 to-red-500/5 p-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-500/20 ring-4 ring-red-500/10">
-                <AlertTriangle className="h-6 w-6 text-red-500" />
-              </div>
-              <div>
-                <DialogTitle className="text-lg font-semibold text-foreground">Eliminar Permanentemente</DialogTitle>
-                <p className="text-sm text-muted-foreground mt-0.5">Esta acción no se puede deshacer</p>
-              </div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-500/20 ring-4 ring-red-500/10"><AlertTriangle className="h-6 w-6 text-red-500" /></div>
+              <div><DialogTitle className="text-lg font-semibold text-foreground">Eliminar Permanentemente</DialogTitle><p className="text-sm text-muted-foreground mt-0.5">Esta acción no se puede deshacer</p></div>
             </div>
           </div>
           <div className="p-6 pt-4">
@@ -333,9 +275,7 @@ export default function Clients() {
           </div>
           <DialogFooter className="p-4 pt-0 gap-2">
             <Button variant="outline" onClick={() => setDeleteDialog({ open: false, clientId: '', clientName: '' })} className="flex-1">Cancelar</Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting} className="flex-1 font-medium">
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Trash2 className="h-4 w-4 mr-1.5" />}Eliminar
-            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting} className="flex-1 font-medium">{isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Trash2 className="h-4 w-4 mr-1.5" />}Eliminar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -345,22 +285,15 @@ export default function Clients() {
         <DialogContent className="sm:max-w-md bg-card border-border p-0 overflow-hidden">
           <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 p-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/20 ring-4 ring-blue-500/10">
-                <FolderKanban className="h-6 w-6 text-blue-500" />
-              </div>
-              <div>
-                <DialogTitle className="text-lg font-semibold text-foreground">No se puede eliminar</DialogTitle>
-                <p className="text-sm text-muted-foreground mt-0.5">El cliente tiene proyectos en curso</p>
-              </div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/20 ring-4 ring-blue-500/10"><FolderKanban className="h-6 w-6 text-blue-500" /></div>
+              <div><DialogTitle className="text-lg font-semibold text-foreground">No se puede eliminar</DialogTitle><p className="text-sm text-muted-foreground mt-0.5">El cliente tiene proyectos en curso</p></div>
             </div>
           </div>
           <div className="p-6 pt-4">
             <p className="text-sm text-foreground"><span className="font-semibold">"{cannotDeleteDialog.clientName}"</span> tiene <span className="font-semibold text-blue-400">{cannotDeleteDialog.projectCount} proyecto(s)</span> sin finalizar.</p>
             <p className="text-xs text-muted-foreground mt-3 bg-muted/50 rounded-lg p-3">Debes completar o cancelar todos los proyectos del cliente antes de poder eliminarlo permanentemente.</p>
           </div>
-          <DialogFooter className="p-4 pt-0">
-            <Button variant="outline" onClick={() => setCannotDeleteDialog({ open: false, clientName: '', projectCount: 0 })} className="w-full">Entendido</Button>
-          </DialogFooter>
+          <DialogFooter className="p-4 pt-0"><Button variant="outline" onClick={() => setCannotDeleteDialog({ open: false, clientName: '', projectCount: 0 })} className="w-full">Entendido</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

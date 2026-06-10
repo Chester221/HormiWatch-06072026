@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import type { Tables, InsertTables } from '@/types/supabase'
 
 export type Task = Tables<'tasks'> & {
@@ -10,7 +11,7 @@ export type Task = Tables<'tasks'> & {
 
 export type CreateTaskData = InsertTables<'tasks'>
 
-export const useTasks = (projectId?: string | 'all') => {
+export const useTasks = (projectId?: string | 'all', technicianId?: string) => {
   const fetchTasks = async (): Promise<Task[]> => {
     try {
       let query = supabase
@@ -20,6 +21,11 @@ export const useTasks = (projectId?: string | 'all') => {
 
       if (projectId && projectId !== 'all') {
         query = query.eq('project_id', projectId)
+      }
+
+      // ✅ Filtrar por técnico si se especifica (para Viewer)
+      if (technicianId) {
+        query = query.eq('technician_id', technicianId)
       }
 
       const { data, error } = await query
@@ -47,7 +53,7 @@ export const useTasks = (projectId?: string | 'all') => {
   }
 
   return useQuery({
-    queryKey: ['tasks', projectId],
+    queryKey: ['tasks', projectId, technicianId],
     queryFn: fetchTasks,
   })
 }
@@ -67,20 +73,21 @@ export const useCreateTask = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      queryClient.refetchQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success('Tarea creada correctamente');
+    },
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`);
     },
   });
 };
 
-// NUEVA MUTACIÓN: Crear múltiples tareas a la vez (para división por días)
 export const useCreateTasks = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (newTasks: any[]) => {
-      if (newTasks.length === 0) throw new Error('No tasks to create');
-      
+      if (newTasks.length === 0) throw new Error('No hay tareas para crear');
       const { data, error } = await supabase
         .from('tasks')
         .insert(newTasks)
@@ -91,7 +98,9 @@ export const useCreateTasks = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`);
     },
   });
 };
@@ -101,25 +110,23 @@ export const useUpdateTask = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number | string; data: Partial<CreateTaskData> }) => {
-      const { error: updateError } = await supabase
+      // ✅ Hacer update + select en una sola operación
+      const { data: updated, error } = await supabase
         .from('tasks')
         .update(data)
         .eq('id', id)
-
-      if (updateError) throw new Error(updateError.message)
-
-      const { data: updated, error: fetchError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('id', id)
+        .select()
         .single()
 
-      if (fetchError) throw new Error(fetchError.message)
+      if (error) throw new Error(error.message)
       return updated
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      queryClient.refetchQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success('Tarea actualizada');
+    },
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`);
     },
   })
 }
@@ -129,24 +136,21 @@ export const useDeleteTask = () => {
 
   return useMutation({
     mutationFn: async (taskId: string) => {
-      const { error, count } = await supabase
+      const { error } = await supabase
         .from('tasks')
-        .delete({ count: 'exact' })
+        .delete()
         .eq('id', taskId);
       
       if (error) throw error;
       
-      // Si no se eliminó ninguna fila, es por falta de permisos
-      if (count === 0) {
-        throw new Error('No tienes permisos para eliminar esta tarea');
-      }
-      
       return true;
     },
     onSuccess: () => {
-      queryClient.refetchQueries({
-        predicate: (query) => query.queryKey[0] === 'tasks'
-      })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success('Tarea eliminada');
+    },
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`);
     },
   })
 }

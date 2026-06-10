@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
-  Calendar, Clock, DollarSign, Download, FileText, BarChart3, CheckCircle2, Circle, User, Users, Plus, Trash2, Pencil
+  Calendar, Clock, DollarSign, Download, FileText, BarChart3, CheckCircle2, Circle, User, Users, Plus, Trash2, Pencil, Crown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTasks, useDeleteTask, type Task } from "@/hooks/useTasks";
 import { TaskFormModal } from "@/components/tasks/TaskFormModal";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase/client";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -73,10 +74,22 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
   const deleteTask = useDeleteTask();
   const [taskFormOpen, setTaskFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
+
+  // Cargar miembros del proyecto desde project_members
+  useEffect(() => {
+    if (open && project) {
+      supabase
+        .from('project_members')
+        .select('*, profiles(id, full_name, avatar_url)')
+        .eq('project_id', project.id)
+        .then(({ data }) => setProjectMembers(data || []));
+    }
+  }, [open, project]);
 
   const realHoursConsumed = tasks.reduce((acc, t) => acc + ((t.duration_in_minutes || 0) / 60), 0);
   const displayHoursConsumed = realHoursConsumed || project.hoursConsumed;
-  const hoursPercentage = Math.round((displayHoursConsumed / project.hoursPool) * 100);
+  const hoursPercentage = project.hoursPool > 0 ? Math.min(Math.round((displayHoursConsumed / project.hoursPool) * 100), 100) : 0;
   const statusInfo = statusConfig[project.status] || statusConfig.default;
 
   const handleEditTask = (task: Task) => { setEditingTask(task); setTaskFormOpen(true); };
@@ -96,20 +109,18 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
     const line = [230, 230, 235];
     const primary = [139, 92, 246];
 
-    // Header
     doc.setFont('helvetica', 'bold').setFontSize(22).setTextColor(dark[0], dark[1], dark[2]);
     doc.text(project.name, 20, 25);
     doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(gray[0], gray[1], gray[2]);
     doc.text(`Reporte de Proyecto · ${new Date().toLocaleDateString('es-ES')}`, 20, 33);
     doc.setDrawColor(line[0], line[1], line[2]).line(20, 38, pw - 20, 38);
 
-    // Resumen
     doc.setFontSize(12).setFont('helvetica', 'bold').setTextColor(dark[0], dark[1], dark[2]).text('Resumen', 20, 52);
     const summaryData = [
         ['Cliente', project.client],
         ['Estado', statusInfo.label],
-        ['Tarifa', `$${project.rate || 85}/hr`],
-        ['Presupuesto', `$${((project.rate || 85) * project.hoursPool).toLocaleString()}`],
+        ['Tarifa', `$${project.rate || 0}/hr`],
+        ['Presupuesto', `$${((project.rate || 0) * project.hoursPool).toLocaleString()}`],
         ['Horas consumidas', `${displayHoursConsumed.toFixed(1)}h / ${project.hoursPool}h (${hoursPercentage}%)`],
         ['Tareas totales', tasks.length.toString()],
         ['Completadas', tasks.filter(t => t.status === 'Completed').length.toString()],
@@ -122,7 +133,6 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
         margin: { left: 20 }, tableWidth: 180,
     });
 
-    // Detalle de tareas
     if (tasks.length > 0) {
         const ty = (doc as any).lastAutoTable.finalY + 12;
         doc.setFontSize(12).setFont('helvetica', 'bold').setTextColor(dark[0], dark[1], dark[2]).text('Tareas', 20, ty);
@@ -143,7 +153,6 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
         });
     }
 
-    // Footer
     const pages = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pages; i++) {
         doc.setPage(i).setDrawColor(line[0], line[1], line[2]).line(20, 285, pw - 20, 285);
@@ -162,14 +171,12 @@ const downloadGraphicPDF = () => {
     const green = [16, 185, 129];
     const amber = [245, 158, 11];
 
-    // Header
     doc.setFont('helvetica', 'bold').setFontSize(22).setTextColor(dark[0], dark[1], dark[2]);
     doc.text(project.name, 20, 25);
     doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(gray[0], gray[1], gray[2]);
     doc.text(`Reporte Gráfico · ${new Date().toLocaleDateString('es-ES')}`, 20, 33);
     doc.setDrawColor(line[0], line[1], line[2]).line(20, 38, pw - 20, 38);
 
-    // Progreso
     doc.setFontSize(12).setFont('helvetica', 'bold').setTextColor(dark[0], dark[1], dark[2]).text('Progreso de Horas', 20, 52);
     doc.setFillColor(245, 245, 248);
     doc.roundedRect(20, 58, pw - 40, 14, 3, 3, 'F');
@@ -179,7 +186,6 @@ const downloadGraphicPDF = () => {
     doc.text(`${displayHoursConsumed.toFixed(1)}h / ${project.hoursPool}h (${hoursPercentage}%)`, 28, 67);
     doc.setTextColor(dark[0], dark[1], dark[2]);
 
-    // Estadísticas
     const completed = tasks.filter(t => t.status === 'Completed').length;
     const pending = tasks.filter(t => t.status === 'Pending').length;
     const inProgress = tasks.filter(t => t.status === 'In Progress').length;
@@ -200,14 +206,13 @@ const downloadGraphicPDF = () => {
         margin: { left: 20 }, tableWidth: 180,
     });
 
-    // Datos financieros
     const ry = (doc as any).lastAutoTable.finalY + 12;
     doc.setFontSize(12).setFont('helvetica', 'bold').text('Resumen Financiero', 20, ry);
     autoTable(doc, {
         startY: ry + 6,
         body: [
-            ['Tarifa por hora', `$${project.rate || 85}/hr`],
-            ['Presupuesto total', `$${((project.rate || 85) * project.hoursPool).toLocaleString()}`],
+            ['Tarifa por hora', `$${project.rate || 0}/hr`],
+            ['Presupuesto total', `$${((project.rate || 0) * project.hoursPool).toLocaleString()}`],
             ['Horas consumidas', `${displayHoursConsumed.toFixed(1)}h`],
             ['Horas restantes', `${(project.hoursPool - displayHoursConsumed).toFixed(1)}h`],
         ],
@@ -216,7 +221,6 @@ const downloadGraphicPDF = () => {
         margin: { left: 20 }, tableWidth: 180,
     });
 
-    // Footer
     const pages = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pages; i++) {
         doc.setPage(i).setDrawColor(line[0], line[1], line[2]).line(20, 285, pw - 20, 285);
@@ -260,33 +264,66 @@ const downloadGraphicPDF = () => {
           <div className="flex-1 overflow-y-auto mt-4">
             <TabsContent value="details" className="m-0 space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-xl border bg-card p-4"><div className="flex items-center gap-2 text-muted-foreground mb-2"><DollarSign className="h-4 w-4" />Tarifa por Hora</div><p className="text-2xl font-bold">${project.rate || 85}/hr</p></div>
-                <div className="rounded-xl border bg-card p-4"><div className="flex items-center gap-2 text-muted-foreground mb-2"><Clock className="h-4 w-4" />Presupuesto</div><p className="text-2xl font-bold">${((project.rate || 85) * project.hoursPool).toLocaleString()}</p></div>
+                <div className="rounded-xl border bg-card p-4"><div className="flex items-center gap-2 text-muted-foreground mb-2"><DollarSign className="h-4 w-4" />Tarifa por Hora</div><p className="text-2xl font-bold">${project.rate || 0}/hr</p></div>
+                <div className="rounded-xl border bg-card p-4"><div className="flex items-center gap-2 text-muted-foreground mb-2"><Clock className="h-4 w-4" />Presupuesto</div><p className="text-2xl font-bold">${((project.rate || 0) * project.hoursPool).toLocaleString()}</p></div>
               </div>
               <div className="rounded-xl border bg-card p-4">
                 <h4 className="font-semibold mb-3 flex items-center gap-2"><Calendar className="h-4 w-4 text-primary" />Línea de Tiempo</h4>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><p className="text-xs text-muted-foreground">Inicio</p><p className="font-medium">{new Date(project.startDate || "2026-01-15").toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}</p></div>
+                  <div><p className="text-xs text-muted-foreground">Inicio</p><p className="font-medium">{new Date(project.startDate || new Date().toISOString()).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}</p></div>
                   <div><p className="text-xs text-muted-foreground">Fin</p><p className="font-medium">{new Date(project.endDate).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}</p></div>
                 </div>
               </div>
+              {/* ✅ Equipo del Proyecto desde project_members */}
               <div className="rounded-xl border bg-card p-4">
-                <h4 className="font-semibold mb-4 flex items-center gap-2"><Users className="h-4 w-4 text-primary" />Equipo Técnico</h4>
+                <h4 className="font-semibold mb-4 flex items-center gap-2"><Users className="h-4 w-4 text-primary" />Equipo del Proyecto</h4>
+                
+                {/* Líder */}
                 <div className="mb-4">
-                  <p className="text-xs text-muted-foreground mb-2">Líder de Proyecto</p>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
-                    <Avatar className="h-10 w-10"><AvatarImage src={project.teamLead.avatar} /><AvatarFallback className="bg-primary text-primary-foreground">{project.teamLead.name[0]}</AvatarFallback></Avatar>
-                    <div><p className="font-medium">{project.teamLead.name}</p><p className="text-xs text-muted-foreground">Líder</p></div>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-2">Miembros</p>
-                  {project.team.length > 0 ? project.team.map((m, i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                      <Avatar className="h-9 w-9"><AvatarImage src={m.avatar} /><AvatarFallback>{m.name[0]}</AvatarFallback></Avatar>
-                      <div><p className="font-medium text-sm">{m.name}</p><p className="text-xs text-muted-foreground">Técnico</p></div>
+                  <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1"><Crown className="h-3 w-3 text-amber-500" /> Líder</p>
+                  {project.teamLead.name !== "Sin líder" ? (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10">
+                      <Avatar className="h-10 w-10 ring-2 ring-amber-500/30">
+                        <AvatarImage src={project.teamLead.avatar} />
+                        <AvatarFallback className="bg-amber-500/10 text-amber-600 font-bold">
+                          {project.teamLead.name?.charAt(0).toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div><p className="font-medium">{project.teamLead.name}</p><p className="text-xs text-amber-500">👑 Líder</p></div>
                     </div>
-                  )) : <p className="text-xs text-muted-foreground">No hay miembros asignados</p>}
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No asignado</p>
+                  )}
+                </div>
+
+                {/* Miembros */}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1"><Users className="h-3 w-3" /> Miembros</p>
+                  {project.team.length > 0 ? (
+                    <div className="space-y-2">
+                      {project.team.map((m, i) => (
+                        <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+                          <Avatar className="h-9 w-9">
+                            <AvatarImage src={m.avatar} />
+                            <AvatarFallback className="bg-muted text-muted-foreground text-xs font-bold">
+                              {m.name?.charAt(0).toUpperCase() || '?'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{m.name}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {m.role === 'leader' ? '👑 Líder' : '👤 Miembro'}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-xs text-muted-foreground bg-muted/20 rounded-xl">
+                      <Users className="h-6 w-6 mx-auto mb-1 opacity-30" />
+                      No hay miembros asignados
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>

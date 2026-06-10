@@ -6,17 +6,15 @@ import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, Filter, Calendar as CalendarIcon, List as ListIcon, Loader2, FileText, FolderKanban } from "lucide-react";
-import { LogTimeModal } from "@/components/tasks/LogTimeModal";
+import { Plus, Search, Filter, Loader2, FileText, FolderKanban, AlertTriangle, Trash2 } from "lucide-react";
+import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { TaskCalendar, type Task } from "@/components/tasks/TaskCalendar";
 import { TaskList } from "@/components/tasks/TaskList";
 import { TaskEditModal } from "@/components/tasks/TaskEditModal";
@@ -31,38 +29,38 @@ import { useClientsWithContacts } from "@/hooks/useClientes";
 
 const Tasks = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [logTimeModalOpen, setLogTimeModalOpen] = useState(false);
+  const [createTaskModalOpen, setCreateTaskModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
   const [calendarView, setCalendarView] = useState<"week" | "month">("week");
-  const [projectFilter, setProjectFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<any>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [justification, setJustification] = useState("");
+  const [justificationError, setJustificationError] = useState("");
   const { data: clients = [] } = useClientsWithContacts();
 
-  const { user, profile } = useAuth();
+  const { user, profile, userRole } = useAuth();
   const { data: projectsList, isLoading: isLoadingProjects } = useProjects();
   const { data: servicesList = [] } = useServices();
   const { holidays } = useHolidays();
-  const { data: tasksData, isLoading: isLoadingTasks, refetch: refetchTasks } = useTasks(projectFilter);
+  const { data: tasksData, isLoading: isLoadingTasks, refetch: refetchTasks } = useTasks();
 
   const createTasksMutation = useCreateTasks();
   const updateTaskMutation = useUpdateTask();
   const deleteTaskMutation = useDeleteTask();
 
-  const calculateDuration = (start: string, end: string) => {
-    if (!start || !end) return 0;
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    if (endDate < startDate) endDate.setDate(endDate.getDate() + 1);
-    const diffMs = endDate.getTime() - startDate.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    return Math.round(diffHours * 10) / 10;
-  };
+  // ✅ Obtener proyectos donde el Manager es líder
+  const managerProjects = projectsList?.filter((p: any) => p.project_leader_id === user?.id) || [];
 
   const handleCreateTask = async (data: any) => {
     if (!user) return toast.error("Debes iniciar sesión para crear una tarea.");
+    if (!data.projectId) return toast.error("Selecciona un proyecto");
+    if (!data.serviceId) return toast.error("Selecciona un servicio");
+
     const dateStr = format(data.date, "yyyy-MM-dd");
     const startHour = parseInt(data.startTime.split(':')[0]);
     const endHour = parseInt(data.endTime.split(':')[0]);
@@ -76,20 +74,69 @@ const Tasks = () => {
     const holidaysList = (holidays.data || []).filter(h => !h.is_working_day).map(h => h.date);
     const breakdown = calculateTaskBreakdown(start_time, end_time, hourlyRate, holidaysList);
     const tasksToCreate = breakdown.days.map(day => ({
-      project_id: data.projectId, service_id: data.serviceId, technician_id: user.id,
-      start_time: `${day.date}T${data.startTime}:00`, end_time: `${day.date}T${data.endTime}:00`,
-      description: data.description, status: data.completed ? 'Completed' : 'Pending',
-      priority: 'Medium', applied_hourly_rate: hourlyRate,
-      normal_hours: day.normalHours, overtime_hours: day.overtimeHours,
-      normal_pay: day.normalPay, overtime_pay: day.overtimePay, total_pay: day.totalPay,
+      project_id: data.projectId, 
+      service_id: data.serviceId, 
+      technician_id: user.id,
+      created_by: user.id,
+      start_time: `${day.date}T${data.startTime}:00`, 
+      end_time: `${day.date}T${data.endTime}:00`,
+      description: data.description, 
+      status: data.completed ? 'Completed' : 'Pending',
+      priority: 'Medium', 
+      applied_hourly_rate: hourlyRate,
+      normal_hours: day.normalHours, 
+      overtime_hours: day.overtimeHours,
+      normal_pay: day.normalPay, 
+      overtime_pay: day.overtimePay, 
+      total_pay: day.totalPay,
     }));
-    createTasksMutation.mutate(tasksToCreate, { onSuccess: () => { toast.success('Tarea registrada'); setLogTimeModalOpen(false); refetchTasks(); }, onError: (error: any) => toast.error(`Error: ${error.message}`) });
+    createTasksMutation.mutate(tasksToCreate, { 
+      onSuccess: () => { 
+        toast.success('Tarea registrada'); 
+        setCreateTaskModalOpen(false); 
+        refetchTasks(); 
+      }, 
+      onError: (error: any) => toast.error(`Error: ${error.message}`) 
+    });
   };
 
-  const handleDeleteTask = (taskId: string) => { setTaskToDelete(taskId); setDeleteDialogOpen(true); };
+  const handleDeleteTask = (task: any) => { 
+    setTaskToDelete(task); 
+    setJustification("");
+    setJustificationError("");
+    setDeleteDialogOpen(true); 
+  };
+  
   const confirmDeleteTask = async () => {
     if (!taskToDelete) return;
-    deleteTaskMutation.mutate(taskToDelete, { onSuccess: () => { toast.success("Tarea eliminada"); setDeleteDialogOpen(false); setTaskToDelete(null); refetchTasks(); }, onError: (error: any) => toast.error(`Error: ${error.message || 'No tienes permisos'}`) });
+    
+    // ✅ Si es Manager, validar justificación
+    if ((userRole === 'Manager' || userRole === 'manager') && !justification.trim()) {
+      setJustificationError("Debes proporcionar una justificación para eliminar esta tarea");
+      return;
+    }
+    
+    setIsDeleting(true);
+    
+    // Guardar justificación en consola (puedes enviarla a una tabla de auditoría)
+    if (justification) {
+      console.log('=== ELIMINACIÓN DE TAREA POR MANAGER ===');
+      console.log('Tarea:', taskToDelete.title || taskToDelete.description);
+      console.log('Justificación:', justification);
+      console.log('Eliminado por:', user?.email, 'Rol:', userRole);
+    }
+    
+    deleteTaskMutation.mutate(taskToDelete.id, { 
+      onSuccess: () => { 
+        toast.success("Tarea eliminada correctamente"); 
+        setDeleteDialogOpen(false); 
+        setTaskToDelete(null); 
+        setJustification("");
+        refetchTasks(); 
+      },
+      onError: (error: any) => toast.error(`Error: ${error.message || 'No tienes permisos'}`) 
+    });
+    setIsDeleting(false);
   };
 
   const handleUpdateTask = (updatedData: any) => {
@@ -99,23 +146,95 @@ const Tasks = () => {
 
   const handleEditTask = (task: Task) => {
     const original = tasksData?.find(t => String(t.id) === task.id);
-    if (original) { setTaskToEdit(original); setEditModalOpen(true); } else toast.error("No se pudo encontrar la tarea");
+    if (original) { setTaskToEdit(original); setEditModalOpen(true); } 
+    else { setTaskToEdit(task); setEditModalOpen(true); }
   };
 
   const tasks: Task[] = (tasksData || []).map(t => {
     const tx = t as any;
-    return { id: String(t.id), title: t.description || t.title || "Tarea sin descripción", date: t.start_time?.split('T')[0] || '', startTime: t.start_time?.split('T')[1]?.substring(0,5) || '', endTime: t.end_time?.split('T')[1]?.substring(0,5) || '', project: t.projects?.name || "General", serviceType: t.services?.name || "General", completed: t.status === 'Completed', hours: calculateDuration(t.start_time, t.end_time), normal_hours: tx.normal_hours || 0, overtime_hours: tx.overtime_hours || 0, normal_pay: tx.normal_pay || 0, overtime_pay: tx.overtime_pay || 0, total_pay: tx.total_pay || 0, isHoliday: tx.is_holiday || false };
+    const hours = tx.duration_in_minutes 
+      ? (tx.duration_in_minutes / 60) 
+      : (t.start_time && t.end_time 
+          ? Math.abs(new Date(t.end_time).getTime() - new Date(t.start_time).getTime()) / 3600000 
+          : 0);
+    
+    return { 
+      id: String(t.id), 
+      title: t.description || t.title || "Tarea sin descripción", 
+      date: t.start_time?.split('T')[0] || '', 
+      startTime: t.start_time?.split('T')[1]?.substring(0,5) || '', 
+      endTime: t.end_time?.split('T')[1]?.substring(0,5) || '', 
+      project: t.projects?.name || "General", 
+      project_id: t.project_id,
+      serviceType: t.services?.name || "General", 
+      completed: t.status === 'Completed', 
+      hours: hours,
+      normal_hours: tx.normal_hours || 0, 
+      overtime_hours: tx.overtime_hours || 0, 
+      normal_pay: tx.normal_pay || 0, 
+      overtime_pay: tx.overtime_pay || 0, 
+      total_pay: tx.total_pay || 0, 
+      isHoliday: tx.is_holiday || false,
+      technician_id: t.technician_id,
+      created_by: t.created_by,
+    };
   });
-  const filteredTasks = tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.serviceType.toLowerCase().includes(searchQuery.toLowerCase()) || t.project?.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  // ✅ Filtrar tareas según rol y permisos
+  const filteredTasks = tasks.filter(t => {
+  // 🔒 Si es técnico, solo ver sus propias tareas
+  if (profile?.role === 'Technician' || profile?.role === 'technician') {
+    if (t.technician_id !== user?.id) {
+      return false;
+    }
+  }
+  
+  const matchesSearch = !searchQuery || 
+    t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.serviceType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.project?.toLowerCase().includes(searchQuery.toLowerCase());
+  const matchesProject = projectFilter === "all" || (t as any).project_id === projectFilter;
+  const matchesStatus = statusFilter === "all" || 
+    (statusFilter === "completed" && t.completed) ||
+    (statusFilter === "pending" && !t.completed);
+  return matchesSearch && matchesProject && matchesStatus;
+});
+
+  // ✅ Verificar si el usuario puede eliminar esta tarea
+  const canDeleteTask = (task: any) => {
+    // Admin siempre puede eliminar
+    if (userRole === 'Admin' || userRole === 'admin') {
+      return true;
+    }
+    
+    // Técnico: solo puede eliminar sus propias tareas (las que él creó)
+    if (userRole === 'technician' || userRole === 'Technician') {
+      return task.created_by === user?.id;
+    }
+    
+    // Manager: solo puede eliminar tareas de proyectos donde es líder
+    if (userRole === 'Manager' || userRole === 'manager') {
+      const isManagerProject = managerProjects.some((p: any) => p.id === task.project_id);
+      return isManagerProject;
+    }
+    
+    return false;
+  };
+
+  // ✅ Verificar si necesita justificación (Manager)
+  const needsJustification = () => {
+    return (userRole === 'Manager' || userRole === 'manager');
+  };
+
   const totalHours = filteredTasks.reduce((acc, t) => acc + t.hours, 0);
   const completedTasksCount = filteredTasks.filter(t => t.completed).length;
-
-  // ═══════════════ EXPORTACIÓN EXCEL ═══════════════
+  const pendingTasksCount = filteredTasks.filter(t => !t.completed).length;
 
   const FILA_INICIO = 16;
   const FILA_FIN = 44;
-  const TAREAS_POR_PAGINA = FILA_FIN - FILA_INICIO + 1; // 29
+  const TAREAS_POR_PAGINA = FILA_FIN - FILA_INICIO + 1;
 
+  // ✅ Exportación SOLO por proyecto (sin exportación individual)
   const exportExcel = async (
     tasksToExport: Task[],
     projectName?: string,
@@ -206,9 +325,7 @@ const Tasks = () => {
     const a = document.createElement('a'); a.href = url;
 
     let nombreArchivo = '';
-    if (tasksToExport.length === 1) {
-      nombreArchivo = (tasksToExport[0].title || 'TAREA').replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, '').trim().replace(/\s+/g, '_').toUpperCase();
-    } else if (projectName) {
+    if (projectName) {
       nombreArchivo = `TAREAS_${projectName.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, '').trim().replace(/\s+/g, '_').toUpperCase()}`;
     } else {
       nombreArchivo = `TAREAS_TODAS_${format(new Date(), 'yyyyMMdd')}`;
@@ -222,11 +339,7 @@ const Tasks = () => {
 
   const exportarPorLotes = async (tasksToExport: Task[], projectName?: string) => {
     const totalPaginas = Math.ceil(tasksToExport.length / TAREAS_POR_PAGINA);
-
-    if (totalPaginas === 0) {
-      toast.error('No hay tareas para exportar');
-      return;
-    }
+    if (totalPaginas === 0) { toast.error('No hay tareas para exportar'); return; }
 
     let nombreBase = '';
     if (projectName) {
@@ -235,13 +348,9 @@ const Tasks = () => {
       nombreBase = `TAREAS_TODAS_${format(new Date(), 'yyyyMMdd')}`;
     }
 
-    if (totalPaginas === 1) {
-      await exportExcel(tasksToExport, projectName, 1, 1);
-      return;
-    }
+    if (totalPaginas === 1) { await exportExcel(tasksToExport, projectName, 1, 1); return; }
 
     toast.info(`Generando ZIP con ${totalPaginas} archivos...`);
-
     const JSZip = (await import('jszip')).default;
     const zip = new JSZip();
 
@@ -249,38 +358,22 @@ const Tasks = () => {
       const inicio = (pagina - 1) * TAREAS_POR_PAGINA;
       const fin = inicio + TAREAS_POR_PAGINA;
       const lote = tasksToExport.slice(inicio, fin);
-
       const resultado = await exportExcel(lote, projectName, pagina, totalPaginas, nombreBase);
-      if (resultado) {
-        zip.file(resultado.nombre, resultado.blob);
-      }
+      if (resultado) zip.file(resultado.nombre, resultado.blob);
     }
 
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(zipBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${nombreBase}.zip`;
-    a.click();
+    const a = document.createElement('a'); a.href = url; a.download = `${nombreBase}.zip`; a.click();
     URL.revokeObjectURL(url);
     toast.success(`ZIP descargado con ${totalPaginas} archivos`);
   };
 
-  const handleExportAllExcel = () => {
-    if (filteredTasks.length === 0) { toast.error('No hay tareas'); return; }
-    exportarPorLotes(filteredTasks);
-  };
-
   const handleExportByProjectExcel = (projectId: string, projectName: string) => {
-    const projectTasks = filteredTasks.filter(t => {
-      const o = tasksData?.find(td => String(td.id) === t.id);
-      return (o as any)?.project_id === projectId;
-    });
+    const projectTasks = tasks.filter((t: any) => t.project_id === projectId);
     if (projectTasks.length === 0) { toast.error(`No hay tareas de "${projectName}"`); return; }
     exportarPorLotes(projectTasks, projectName);
   };
-
-  const handleExportSingleExcel = (task: Task) => exportExcel([task]);
 
   return (
     <DashboardLayout>
@@ -290,7 +383,6 @@ const Tasks = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild><Button variant="outline" className="gap-2"><FileText className="h-4 w-4" />Exportar</Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-card border-border w-56">
-              <DropdownMenuItem className="cursor-pointer gap-2" onClick={handleExportAllExcel}><FileText className="h-4 w-4" /> Exportar Todas las Tareas</DropdownMenuItem>
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="cursor-pointer gap-2"><FolderKanban className="h-4 w-4" /> Exportar por Proyecto</DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="bg-card border-border w-48">
@@ -299,22 +391,108 @@ const Tasks = () => {
               </DropdownMenuSub>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button className="gap-2 shadow-glow" onClick={() => setLogTimeModalOpen(true)}><Plus className="h-4 w-4" />Registrar Tiempo</Button>
+          <Button className="gap-2 shadow-glow" onClick={() => setCreateTaskModalOpen(true)}>
+            <Plus className="h-4 w-4" />Nueva Tarea
+          </Button>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-4 mb-6">
+
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="rounded-xl border bg-card p-4"><p className="text-sm text-muted-foreground">Total Tareas</p><p className="text-2xl font-bold">{filteredTasks.length}</p></div>
         <div className="rounded-xl border bg-card p-4"><p className="text-sm text-muted-foreground">Horas Registradas</p><p className="text-2xl font-bold text-primary">{totalHours.toFixed(1)}h</p></div>
         <div className="rounded-xl border bg-card p-4"><p className="text-sm text-muted-foreground">Completadas</p><p className="text-2xl font-bold text-green-500">{completedTasksCount}</p></div>
+        <div className="rounded-xl border bg-card p-4"><p className="text-sm text-muted-foreground">Pendientes</p><p className="text-2xl font-bold text-amber-500">{pendingTasksCount}</p></div>
       </div>
+
       <div className="mb-6 flex gap-4">
         <div className="relative max-w-md flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" /><Input placeholder="Buscar tareas..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10 bg-muted/50" /></div>
-        <Select value={projectFilter} onValueChange={setProjectFilter}><SelectTrigger className="w-[200px] bg-muted/50"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Filtrar" /></SelectTrigger><SelectContent>{[{id:'all',name:'Todos'},...(projectsList||[])].map(p=><SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select>
+        <Select value={projectFilter} onValueChange={setProjectFilter}>
+          <SelectTrigger className="w-[180px] bg-muted/50"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Proyecto" /></SelectTrigger>
+          <SelectContent>{[{id:'all',name:'Todos los proyectos'},...(projectsList||[])].map(p=><SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[150px] bg-muted/50"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Estado" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los estados</SelectItem>
+            <SelectItem value="pending">Pendientes</SelectItem>
+            <SelectItem value="completed">Completadas</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-      {isLoadingTasks ? <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div> : viewMode === "calendar" ? <TaskCalendar tasks={filteredTasks} view={calendarView} onTaskClick={handleEditTask} /> : <TaskList tasks={filteredTasks} onTaskClick={handleEditTask} onEditTask={handleEditTask} onDeleteTask={handleDeleteTask} onExportPDF={handleExportSingleExcel} />}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Eliminar Tarea</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={confirmDeleteTask} className="bg-destructive">Eliminar</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+
+      {isLoadingTasks ? (
+        <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
+      ) : viewMode === "calendar" ? (
+        <TaskCalendar tasks={filteredTasks} view={calendarView} onTaskClick={handleEditTask} />
+      ) : (
+        <TaskList 
+  tasks={filteredTasks} 
+  onEditTask={handleEditTask} 
+  onDeleteTask={handleDeleteTask} 
+/>
+
+      )}
+
+      {/* Modal de confirmación de eliminación con justificación para Manager */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-card border-border p-0 overflow-hidden">
+          <div className="p-6 bg-gradient-to-r from-red-500/10 to-red-500/5 border-b border-border">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-500/20 ring-4 ring-red-500/10">
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold">Eliminar Tarea</DialogTitle>
+                <p className="text-sm text-muted-foreground mt-0.5">Esta acción no se puede deshacer</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            <p className="text-sm text-foreground">¿Eliminar esta tarea permanentemente?</p>
+            
+            {/* Justificación para Manager */}
+            {needsJustification() && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Justificación *</label>
+                <textarea
+                  value={justification}
+                  onChange={(e) => {
+                    setJustification(e.target.value);
+                    setJustificationError("");
+                  }}
+                  placeholder="Explica el motivo por el cual estás eliminando esta tarea..."
+                  className="w-full px-3 py-2 text-sm bg-muted/50 border border-border rounded-lg resize-none focus:outline-none focus:border-primary min-h-[80px]"
+                />
+                {justificationError && <p className="text-xs text-red-500">{justificationError}</p>}
+                <p className="text-[10px] text-muted-foreground">
+                  Esta justificación quedará registrada en el historial del sistema
+                </p>
+              </div>
+            )}
+            
+            <div className="mt-3 bg-red-500/5 border border-red-500/10 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-red-400">Se eliminarán todos los datos de la tarea. No podrás recuperarlos.</p>
+            </div>
+          </div>
+          <DialogFooter className="p-4 pt-0 gap-2">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="flex-1">Cancelar</Button>
+            <Button variant="destructive" onClick={confirmDeleteTask} disabled={isDeleting} className="flex-1 font-medium">
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Trash2 className="h-4 w-4 mr-1.5" />}Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <TaskEditModal task={taskToEdit} open={editModalOpen} onOpenChange={setEditModalOpen} onSuccess={handleUpdateTask} />
-      <LogTimeModal open={logTimeModalOpen} onOpenChange={setLogTimeModalOpen} projects={projectsList || []} onSubmit={handleCreateTask} />
+      
+      <CreateTaskModal
+        open={createTaskModalOpen}
+        onOpenChange={(open) => setCreateTaskModalOpen(open)}
+        projects={projectsList || []}
+        services={servicesList}
+        onSuccess={handleCreateTask}
+      />
     </DashboardLayout>
   );
 };

@@ -4,11 +4,11 @@
  * Horario Diurno:  6:00 AM - 6:59 PM → ×1
  * Horario Nocturno: 7:00 PM - 5:59 AM → ×1.5
  * 
- * Multiplicadores por tipo de día:
+ * Multiplicadores por tipo de día (prioridad de mayor a menor):
+ * - Domingo → ×2 (siempre, sin importar si es feriado)
+ * - Feriado (lunes a sábado) → ×2
+ * - Sábado (no feriado) → ×1.5
  * - Lunes a Viernes: Diurno ×1, Nocturno ×1.5
- * - Sábado: Todo el día ×1.5
- * - Domingo: Todo el día ×2
- * - Feriado: Todo el día ×2 (máxima prioridad)
  */
 
 export interface DayBreakdown {
@@ -47,6 +47,13 @@ export interface HoursBreakdown {
 
 const DAYS_OF_WEEK = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
+/**
+ * Calcula el multiplicador del día según prioridad:
+ * 1. Domingo → ×2 (siempre)
+ * 2. Feriado (lunes a sábado) → ×2
+ * 3. Sábado (no feriado) → ×1.5
+ * 4. Lunes a Viernes → depende del horario (diurno ×1, nocturno ×1.5)
+ */
 function getDayMultiplier(date: Date, holidaysList: string[]): { multiplier: number; label: string } {
   const dateStr = date.toISOString().split('T')[0];
   const dayOfWeek = date.getDay(); // 0=Domingo, 6=Sábado
@@ -54,13 +61,16 @@ function getDayMultiplier(date: Date, holidaysList: string[]): { multiplier: num
   const isSaturday = dayOfWeek === 6;
   const isSunday = dayOfWeek === 0;
 
-  // 1. Feriado gana sobre todo
-  if (isHoliday) return { multiplier: 2, label: 'Feriado ×2' };
-  // 2. Domingo
+  // 🔒 1. DOMINGO siempre tiene prioridad (sin importar si es feriado)
   if (isSunday) return { multiplier: 2, label: 'Domingo ×2' };
-  // 3. Sábado
+  
+  // 🔒 2. FERIADO (lunes a sábado)
+  if (isHoliday) return { multiplier: 2, label: 'Feriado ×2' };
+  
+  // 🔒 3. SÁBADO (no feriado)
   if (isSaturday) return { multiplier: 1.5, label: 'Sábado ×1.5' };
-  // 4. Lunes a Viernes - se calcula por horario
+  
+  // 🔒 4. Lunes a Viernes - se calcula por horario
   return { multiplier: 1, label: 'Diurno ×1' };
 }
 
@@ -87,29 +97,15 @@ function calculateDayBreakdown(
   const startTotalMinutes = startHour * 60 + startMinute;
   const endTotalMinutes = endHour * 60 + endMinute;
 
-  // Si es sábado, domingo o feriado, todo es según el multiplicador del día
-  if (isSaturday || isSunday || isHoliday) {
-    // Todo el tiempo se considera "normal" con el multiplicador del día
-    for (let m = startTotalMinutes; m < endTotalMinutes; m++) {
-      const hour = Math.floor(m / 60);
-      // Diurno: 6AM - 6:59PM, Nocturno: 7PM - 5:59AM
-      if (hour >= 6 && hour < 19) {
-        normalMinutes++;
-      } else {
-        overtimeMinutes++;
-      }
-    }
-  } else {
-    // Lunes a Viernes: separar diurno/nocturno
-    for (let m = startTotalMinutes; m < endTotalMinutes; m++) {
-      const hour = Math.floor(m / 60);
-      // Diurno: 6:00 - 18:59 (6 AM - 6:59 PM)
-      if (hour >= 6 && hour < 19) {
-        normalMinutes++;
-      } else {
-        // Nocturno: 19:00 - 5:59 (7 PM - 5:59 AM)
-        overtimeMinutes++;
-      }
+  // Separar minutos según horario diurno/nocturno
+  for (let m = startTotalMinutes; m < endTotalMinutes; m++) {
+    const hour = Math.floor(m / 60);
+    // Diurno: 6:00 - 18:59 (6 AM - 6:59 PM)
+    if (hour >= 6 && hour < 19) {
+      normalMinutes++;
+    } else {
+      // Nocturno: 19:00 - 5:59 (7 PM - 5:59 AM)
+      overtimeMinutes++;
     }
   }
 
@@ -117,12 +113,12 @@ function calculateDayBreakdown(
   const overtimeHours = Math.round((overtimeMinutes / 60) * 100) / 100;
   const totalHours = Math.round((normalHours + overtimeHours) * 100) / 100;
 
-  // Calcular pagos
+  // Calcular pagos según el tipo de día
   let normalPay: number;
   let overtimePay: number;
 
-  if (isSaturday || isSunday || isHoliday) {
-    // Todo el día usa el multiplicador del día
+  // Domingo, Feriado o Sábado: todo el día usa el multiplicador correspondiente
+  if (isSunday || isHoliday || isSaturday) {
     normalPay = Math.round(normalHours * hourlyRate * multiplier * 100) / 100;
     overtimePay = Math.round(overtimeHours * hourlyRate * multiplier * 100) / 100;
   } else {
