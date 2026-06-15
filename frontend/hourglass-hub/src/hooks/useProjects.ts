@@ -40,23 +40,15 @@ export const useProjects = () => {
         }
 
         const projectIds = projects.map(p => p.id);
-<<<<<<< HEAD
         const { data: tasksData } = await supabase
-  .from('tasks')
-  .select('project_id, hours')  // ✅ hours sí existe
-  .in('project_id', projectIds);
-=======
-        const { data: tasksData } = await supabase.from('tasks').select('project_id, duration_in_minutes').in('project_id', projectIds);
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
+          .from('tasks')
+          .select('project_id, hours')
+          .in('project_id', projectIds);
 
         const hoursMap: Record<string, number> = {};
         (tasksData || []).forEach((t: any) => {
           if (!hoursMap[t.project_id]) hoursMap[t.project_id] = 0;
-<<<<<<< HEAD
           hoursMap[t.project_id] += (t.hours || 0);
-=======
-          hoursMap[t.project_id] += (t.duration_in_minutes || 0) / 60;
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
         });
 
         return projects.map(p => ({
@@ -93,10 +85,8 @@ export const useDeleteProject = () => {
         throw new Error('Solo el creador del proyecto puede eliminarlo');
       }
 
-      // ✅ Verificar si tiene tareas
       const { count: totalTasks } = await supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('project_id', projectId);
 
-      // Si tiene tareas, solo se puede eliminar si está Completed o Cancelled
       if (totalTasks && totalTasks > 0) {
         if (project.status !== 'Completed' && project.status !== 'Cancelled') {
           throw new Error(`No puedes eliminar "${project.name}" porque tiene ${totalTasks} tarea(s). Solo se pueden eliminar proyectos completados o cancelados.`);

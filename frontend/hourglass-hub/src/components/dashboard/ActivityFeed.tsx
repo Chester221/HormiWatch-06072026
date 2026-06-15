@@ -54,7 +54,6 @@ interface Activity {
   eventType?: string;
 }
 
-// Componente de lista de actividades (sin header)
 const ActivityList = ({ 
   tasks, 
   projects, 
@@ -265,9 +264,7 @@ const ActivityList = ({
   };
 
   const getIcon = (activity: Activity) => {
-    if (activity.type === "task") {
-      return <CheckSquare className="h-4 w-4 text-primary" />;
-    }
+    if (activity.type === "task") return <CheckSquare className="h-4 w-4 text-primary" />;
     
     if (activity.type === "project_event") {
       switch (activity.eventType) {
@@ -298,151 +295,74 @@ const ActivityList = ({
     if (activity.type === "project" && !isTechnician) navigate("/projects");
   };
 
-  // Variantes de animación
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { type: "spring", stiffness: 300, damping: 24 }
-    }
-  };
-
-  const dateHeaderVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: { 
-      opacity: 1, 
-      x: 0,
-      transition: { duration: 0.3 }
-    }
-  };
-
   return (
-    <motion.div 
-      className="h-full overflow-y-auto p-4 custom-scrollbar space-y-6"
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
-    >
+    <div className="h-full overflow-y-auto p-4 custom-scrollbar space-y-6">
       {Object.entries(groupedActivities).length === 0 ? (
-        <motion.div 
-          className="flex flex-col items-center justify-center text-muted-foreground h-full"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-        >
+        <div className="flex flex-col items-center justify-center text-muted-foreground h-full">
           <Activity className="h-12 w-12 opacity-30 mb-3" />
           <p className="text-sm font-medium">No hay actividad reciente</p>
           <p className="text-xs mt-1">Las actividades aparecerán aquí cuando registres tareas</p>
-        </motion.div>
+        </div>
       ) : (
-        Object.entries(groupedActivities).map(([date, items], dateIndex) => (
-          <motion.div 
-            key={date} 
-            variants={dateHeaderVariants}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: dateIndex * 0.1 }}
-          >
+        Object.entries(groupedActivities).map(([date, items]) => (
+          <div key={date}>
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="h-3 w-3 text-primary" />
-              <h4 className="text-xs font-bold text-primary uppercase tracking-wider">
-                {date}
-              </h4>
-              <motion.div 
-                className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: 0.5, delay: dateIndex * 0.1 }}
-              />
+              <h4 className="text-xs font-bold text-primary uppercase tracking-wider">{date}</h4>
+              <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
             </div>
             <div className="space-y-3 pl-2">
-              <AnimatePresence mode="popLayout">
-                {items.map((activity, itemIndex) => (
-                  <motion.div
-                    key={activity.id}
-                    variants={itemVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ delay: itemIndex * 0.03 }}
-                    whileHover={{ scale: 1.01, x: 4 }}
-                    whileTap={{ scale: 0.99 }}
-                    onClick={() => isClickable(activity) && handleClick(activity)}
-                    className={`group p-3 rounded-xl transition-all duration-200 ${
-                      isClickable(activity) 
-                        ? "hover:bg-muted/50 hover:shadow-md cursor-pointer" 
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <motion.div 
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10"
-                        whileHover={{ rotate: 5, scale: 1.05 }}
-                        transition={{ type: "spring", stiffness: 400 }}
-                      >
-                        {getIcon(activity)}
-                      </motion.div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <p className="text-sm font-semibold text-foreground">{activity.title}</p>
-                          {activity.action && (
-                            <motion.span 
-                              className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                                activity.action === "Completada" ? "bg-emerald-500/10 text-emerald-600" :
-                                activity.action === "En progreso" ? "bg-amber-500/10 text-amber-600" :
-                                "bg-muted text-muted-foreground"
-                              }`}
-                              initial={{ scale: 0.8, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              transition={{ delay: 0.1 }}
-                            >
-                              {activity.action}
-                            </motion.span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">{activity.description}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            {activity.user}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/60">•</span>
-                          <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {getTimeAgo(activity.time)}
-                          </span>
-                        </div>
-                      </div>
-                      {isClickable(activity) && (
-                        <motion.div
-                          initial={{ x: -5, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          whileHover={{ x: 3 }}
-                          transition={{ type: "spring", stiffness: 400 }}
-                        >
-                          <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all" />
-                        </motion.div>
-                      )}
+              {items.map((activity) => (
+                <div
+                  key={activity.id}
+                  onClick={() => isClickable(activity) && handleClick(activity)}
+                  className={`group p-3 rounded-xl transition-all duration-200 ${
+                    isClickable(activity) 
+                      ? "hover:bg-muted/50 hover:shadow-md cursor-pointer" 
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      {getIcon(activity)}
                     </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <p className="text-sm font-semibold text-foreground">{activity.title}</p>
+                        {activity.action && (
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                            activity.action === "Completada" ? "bg-emerald-500/10 text-emerald-600" :
+                            activity.action === "En progreso" ? "bg-amber-500/10 text-amber-600" :
+                            "bg-muted text-muted-foreground"
+                          }`}>
+                            {activity.action}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{activity.description}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          {activity.user}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground/60">•</span>
+                        <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {getTimeAgo(activity.time)}
+                        </span>
+                      </div>
+                    </div>
+                    {isClickable(activity) && (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all" />
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          </motion.div>
+          </div>
         ))
       )}
-    </motion.div>
+    </div>
   );
 };
 
@@ -465,95 +385,44 @@ export function ActivityFeed() {
     { value: "project_events", label: "Eventos", icon: Calendar },
   ];
 
-  // Variantes de animación para los botones
-  const buttonVariants = {
-    idle: { scale: 1 },
-    hover: { scale: 1.05, transition: { type: "spring", stiffness: 400 } },
-    tap: { scale: 0.95 }
-  };
-
-  const headerVariants = {
-    hidden: { opacity: 0, y: -20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.4, ease: "easeOut" }
-    }
-  };
-
-  const modalVariants = {
-    hidden: { opacity: 0, scale: 0.95 },
-    visible: { 
-      opacity: 1, 
-      scale: 1,
-      transition: { type: "spring", damping: 25, stiffness: 300 }
-    },
-    exit: { 
-      opacity: 0, 
-      scale: 0.95,
-      transition: { duration: 0.2 }
-    }
-  };
-
   return (
     <>
-      {/* Versión compacta en el Dashboard */}
-      <motion.div 
+      <div 
         className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col"
         style={{ height: "420px" }}
-        initial="hidden"
-        animate="visible"
-        variants={headerVariants}
       >
         <div className="p-4 border-b border-border shrink-0 bg-gradient-to-r from-card to-muted/10">
           <div className="flex items-center justify-between mb-3">
-            <motion.div 
-              className="flex items-center gap-2"
-              initial={{ x: -10, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-            >
+            <div className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-primary" />
               <h3 className="text-lg font-semibold text-foreground">Actividad Reciente</h3>
-            </motion.div>
-            <motion.button
-              whileHover={{ scale: 1.1, rotate: 90 }}
-              whileTap={{ scale: 0.9 }}
+            </div>
+            <button
               onClick={() => setIsModalOpen(true)}
               className="p-1.5 rounded-md hover:bg-muted transition-colors"
               title="Expandir"
             >
               <Maximize2 className="h-4 w-4 text-muted-foreground" />
-            </motion.button>
+            </button>
           </div>
-          {/* Filtros */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <AnimatePresence>
-              {typeButtons.map((btn, i) => (
-                <motion.button
-                  key={btn.value}
-                  variants={buttonVariants}
-                  initial="idle"
-                  whileHover="hover"
-                  whileTap="tap"
-                  animate="idle"
-                  transition={{ delay: i * 0.05 }}
-                  onClick={() => setSelectedType(btn.value)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                    selectedType === btn.value
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "text-muted-foreground hover:bg-muted/50"
-                  }`}
-                >
-                  <btn.icon className="h-3 w-3" />
-                  {btn.label}
-                </motion.button>
-              ))}
-            </AnimatePresence>
+            {typeButtons.map((btn) => (
+              <button
+                key={btn.value}
+                onClick={() => setSelectedType(btn.value)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                  selectedType === btn.value
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "text-muted-foreground hover:bg-muted/50"
+                }`}
+              >
+                <btn.icon className="h-3 w-3" />
+                {btn.label}
+              </button>
+            ))}
           </div>
         </div>
         
-        {/* Lista de actividades - con altura fija y scroll */}
         <div className="flex-1 min-h-0">
           <ActivityList 
             tasks={tasks}
@@ -565,140 +434,32 @@ export function ActivityFeed() {
             selectedType={selectedType}
           />
         </div>
-      </motion.div>
+      </div>
 
-      {/* Modal expandido */}
-<<<<<<< HEAD
-<Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-  <DialogContent className="max-w-4xl w-[90vw] h-[85vh] bg-card border-border flex flex-col p-0 rounded-2xl shadow-2xl overflow-hidden">
-    <motion.div 
-      className="flex flex-col h-full"
-      variants={modalVariants}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-    >
-      <div className="p-5 border-b border-border shrink-0 bg-gradient-to-r from-primary/5 to-transparent">
-        <div className="flex items-center justify-between">
-          <motion.div 
-            className="flex items-center gap-2"
-            initial={{ x: -10, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Activity className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-bold text-foreground">Actividad Reciente</h2>
-          </motion.div>
-          {/* ❌ ELIMINA ESTE BLOQUE - La X duplicada
-          <motion.button
-            whileHover={{ scale: 1.1, rotate: 90 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setIsModalOpen(false)}
-            className="p-2 rounded-full hover:bg-muted transition-colors"
-          >
-            <X className="h-5 w-5 text-muted-foreground" />
-          </motion.button>
-          */}
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Historial de tareas, proyectos y eventos del sistema
-        </p>
-        
-        {/* Filtros también en el modal */}
-        <div className="flex items-center gap-1.5 flex-wrap mt-4">
-          {typeButtons.map((btn, i) => (
-            <motion.button
-              key={btn.value}
-              variants={buttonVariants}
-              initial="idle"
-              whileHover="hover"
-              whileTap="tap"
-              animate="idle"
-              transition={{ delay: i * 0.05 }}
-              onClick={() => setSelectedType(btn.value)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                selectedType === btn.value
-                  ? "bg-primary text-primary-foreground shadow-md"
-                  : "text-muted-foreground hover:bg-muted/50"
-              }`}
-            >
-              <btn.icon className="h-3 w-3" />
-              {btn.label}
-            </motion.button>
-          ))}
-        </div>
-      </div>
-      
-      {/* Lista de actividades en el modal */}
-      <div className="flex-1 min-h-0">
-        <ActivityList 
-          tasks={tasks}
-          projects={projects}
-          user={user}
-          profile={profile}
-          isTechnician={isTechnician}
-          isManagerOrAdmin={isManagerOrAdmin}
-          selectedType={selectedType}
-        />
-      </div>
-    </motion.div>
-  </DialogContent>
-</Dialog>
-=======
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-4xl w-[90vw] h-[85vh] bg-card border-border flex flex-col p-0 rounded-2xl shadow-2xl overflow-hidden">
-          <motion.div 
-            className="flex flex-col h-full"
-            variants={modalVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-          >
+          <div className="flex flex-col h-full">
             <div className="p-5 border-b border-border shrink-0 bg-gradient-to-r from-primary/5 to-transparent">
               <div className="flex items-center justify-between">
-                <motion.div 
-                  className="flex items-center gap-2"
-                  initial={{ x: -10, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                >
+                <div className="flex items-center gap-2">
                   <Activity className="h-6 w-6 text-primary" />
                   <h2 className="text-2xl font-bold text-foreground">Actividad Reciente</h2>
-                </motion.div>
-                <motion.button
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
+                </div>
+                <button
                   onClick={() => setIsModalOpen(false)}
                   className="p-2 rounded-full hover:bg-muted transition-colors"
                 >
                   <X className="h-5 w-5 text-muted-foreground" />
-                </motion.button>
+                </button>
               </div>
-              <motion.p 
-                className="text-sm text-muted-foreground mt-1"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.15 }}
-              >
+              <p className="text-sm text-muted-foreground mt-1">
                 Historial de tareas, proyectos y eventos del sistema
-              </motion.p>
+              </p>
               
-              {/* Filtros también en el modal */}
-              <motion.div 
-                className="flex items-center gap-1.5 flex-wrap mt-4"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                {typeButtons.map((btn, i) => (
-                  <motion.button
+              <div className="flex items-center gap-1.5 flex-wrap mt-4">
+                {typeButtons.map((btn) => (
+                  <button
                     key={btn.value}
-                    variants={buttonVariants}
-                    initial="idle"
-                    whileHover="hover"
-                    whileTap="tap"
-                    animate="idle"
-                    transition={{ delay: i * 0.05 }}
                     onClick={() => setSelectedType(btn.value)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                       selectedType === btn.value
@@ -708,12 +469,11 @@ export function ActivityFeed() {
                   >
                     <btn.icon className="h-3 w-3" />
                     {btn.label}
-                  </motion.button>
+                  </button>
                 ))}
-              </motion.div>
+              </div>
             </div>
             
-            {/* Lista de actividades en el modal */}
             <div className="flex-1 min-h-0">
               <ActivityList 
                 tasks={tasks}
@@ -725,10 +485,9 @@ export function ActivityFeed() {
                 selectedType={selectedType}
               />
             </div>
-          </motion.div>
+          </div>
         </DialogContent>
       </Dialog>
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
     </>
   );
 }

@@ -2,12 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-<<<<<<< HEAD
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
-=======
-import { HashRouter, Routes, Route } from "react-router-dom";
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import TechnicianDashboard from "./pages/TechnicianDashboard";  
 import ManagerDashboard from "./pages/Manager/DashboardMG";   
@@ -23,11 +19,9 @@ import Holidays from "./pages/Holidays";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "@/pages/Admin/AdminDashboard";
+import { Button } from "@/components/ui/button";
 
 const queryClient = new QueryClient();
-
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
 
 // Componente para manejar errores globales de autenticación
 const AuthErrorBoundary = ({ children }: { children: React.ReactNode }) => {
@@ -37,17 +31,11 @@ const AuthErrorBoundary = ({ children }: { children: React.ReactNode }) => {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 text-center">
         <h2 className="text-2xl font-bold text-destructive mb-2">Error de Conexión</h2>
-        <p className="text-muted-foreground mb-6 max-w-md">
-          {error}
-        </p>
+        <p className="text-muted-foreground mb-6 max-w-md">{error}</p>
         <Button onClick={() => window.location.reload()} variant="default">
           Reintentar
         </Button>
-        <Button
-          onClick={refreshProfile}
-          variant="outline"
-          className="mt-2"
-        >
+        <Button onClick={refreshProfile} variant="outline" className="mt-2">
           Intentar reconectar sesión
         </Button>
       </div>
@@ -57,7 +45,7 @@ const AuthErrorBoundary = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// ✅ Componente para redirigir según el rol al dashboard principal
+// Componente para redirigir según el rol al dashboard principal
 const RoleBasedDashboard = () => {
   const { profile, loading } = useAuth();
   
@@ -69,20 +57,11 @@ const RoleBasedDashboard = () => {
     );
   }
   
-  // ✅ Normalizar rol (primera letra mayúscula)
   const rawRole = profile?.role;
   const role = rawRole ? rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase() : null;
   
-  console.log("🔍 Rol detectado:", role);
-
-  // Redirigir según el rol
-  if (role === 'Manager') {
-    return <Navigate to="/gerencial" replace />;
-  }
-  if (role === 'Admin') {
-    return <Navigate to="/control-usuarios" replace />;
-  }
-  // Technician o cualquier otro → Dashboard técnico
+  if (role === 'Manager') return <Navigate to="/gerencial" replace />;
+  if (role === 'Admin') return <Navigate to="/control-usuarios" replace />;
   return <Navigate to="/dashboard" replace />;
 };
 
@@ -92,110 +71,51 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-<<<<<<< HEAD
         <HashRouter>
           <AuthErrorBoundary>
-=======
-        <AuthErrorBoundary>
-          <HashRouter>
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
             <Routes>
-              {/* Ruta pública - Login/Registro */}
               <Route path="/auth" element={<Auth />} />
-
-              {/* ✅ Ruta principal - Redirige según el rol */}
               <Route path="/" element={<RoleBasedDashboard />} />
-
-              {/* ✅ Dashboard de Técnicos */}
               <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <TechnicianDashboard />
-                </ProtectedRoute>
+                <ProtectedRoute><TechnicianDashboard /></ProtectedRoute>
               } />
-
-              {/* ✅ Dashboard Gerencial (solo Manager) */}
               <Route path="/gerencial" element={
-                <ProtectedRoute requiredRole={['Manager']}>
-                  <ManagerDashboard />
-                </ProtectedRoute>
+                <ProtectedRoute requiredRole={['Manager']}><ManagerDashboard /></ProtectedRoute>
               } />
-
-              {/* Rutas para todos los autenticados */}
               <Route path="/tasks" element={
-                <ProtectedRoute>
-                  <Tasks />
-                </ProtectedRoute>
+                <ProtectedRoute><Tasks /></ProtectedRoute>
               } />
               <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
+                <ProtectedRoute><Profile /></ProtectedRoute>
               } />
               <Route path="/settings" element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
+                <ProtectedRoute><Settings /></ProtectedRoute>
               } />
-
-              {/* ✅ Proyectos - También para Técnicos (solo lectura) */}
               <Route path="/projects" element={
-                <ProtectedRoute requiredRole={['Manager', 'Admin', 'Technician']}>
-                  <Projects />
-                </ProtectedRoute>
+                <ProtectedRoute requiredRole={['Manager', 'Admin', 'Technician']}><Projects /></ProtectedRoute>
               } />
-
-              {/* ✅ Clientes - Solo Manager y Admin */}
               <Route path="/clients" element={
-                <ProtectedRoute requiredRole={['Manager', 'Admin']}>
-                  <Clients />
-                </ProtectedRoute>
+                <ProtectedRoute requiredRole={['Manager', 'Admin']}><Clients /></ProtectedRoute>
               } />
-
-              {/* ✅ Equipo - Solo Manager y Admin */}
               <Route path="/team" element={
-                <ProtectedRoute requiredRole={['Manager', 'Admin']}>
-                  <Team />
-                </ProtectedRoute>
+                <ProtectedRoute requiredRole={['Manager', 'Admin']}><Team /></ProtectedRoute>
               } />
-
-              {/* ✅ Servicios - También para Técnicos */}
               <Route path="/services" element={
-                <ProtectedRoute requiredRole={['Manager', 'Admin', 'Technician']}>
-                  <Services />
-                </ProtectedRoute>
+                <ProtectedRoute requiredRole={['Manager', 'Admin', 'Technician']}><Services /></ProtectedRoute>
               } />
-
-              {/* ✅ Feriados - Solo Manager y Admin */}
               <Route path="/holidays" element={
-                <ProtectedRoute requiredRole={['Manager', 'Admin']}>
-                  <Holidays />
-                </ProtectedRoute>
+                <ProtectedRoute requiredRole={['Manager', 'Admin']}><Holidays /></ProtectedRoute>
               } />
-
-              {/* ✅ Reportes - Solo Manager y Admin */}
               <Route path="/reports" element={
-                <ProtectedRoute requiredRole={['Manager', 'Admin']}>
-                  <Reports />
-                </ProtectedRoute>
+                <ProtectedRoute requiredRole={['Manager', 'Admin']}><Reports /></ProtectedRoute>
               } />
-
-              {/* ✅ Ruta exclusiva para Administrador */}
               <Route path="/control-usuarios" element={
-                <ProtectedRoute requiredRole={['Admin']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
+                <ProtectedRoute requiredRole={['Admin']}><AdminDashboard /></ProtectedRoute>
               } />
-
-              {/* Ruta 404 */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-<<<<<<< HEAD
           </AuthErrorBoundary>
         </HashRouter>
-=======
-          </HashRouter>
-        </AuthErrorBoundary>
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

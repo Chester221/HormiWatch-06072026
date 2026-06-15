@@ -10,14 +10,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Task } from "./TaskCalendar";
 
 interface TaskListProps {
-<<<<<<< HEAD
   tasks: (Task & {
     canEdit?: boolean;
     canDelete?: boolean;
   })[];
-=======
-  tasks: Task[];
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: any) => void;
 }
@@ -69,14 +65,10 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
         const isMixed = hasNormal && hasOvertime;
         const isExpanded = expandedTasks.has(task.id);
         const isHoliday = taskData.isHoliday || taskData.is_holiday;
-<<<<<<< HEAD
         
-        // ✅ Permisos específicos para esta tarea
         const canEditThis = task.canEdit === true;
         const canDeleteThis = task.canDelete === true;
         const showActions = canEditThis || canDeleteThis;
-=======
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
 
         return (
           <motion.div
@@ -86,13 +78,11 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
             transition={{ duration: 0.3, delay: index * 0.05 }}
             className="border border-border rounded-xl overflow-hidden bg-card"
           >
-            {/* Tarjeta principal - clic SOLO para expandir/colapsar */}
             <div
               onClick={(e) => toggleExpand(task.id, e)}
               className="group p-4 cursor-pointer transition-all duration-200 hover:bg-muted/20"
             >
               <div className="flex items-center gap-4">
-                {/* Status Icon */}
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   {task.completed ? (
                     <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -101,7 +91,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
                   )}
                 </div>
 
-                {/* Task Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="font-medium text-foreground truncate max-w-[200px]">
@@ -146,13 +135,11 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
                   </div>
                 </div>
 
-                {/* Hours & Pay */}
                 <div className="text-right shrink-0">
                   <p className="text-lg font-bold text-foreground">{task.hours.toFixed(1)}h</p>
                   <p className="text-xs text-emerald-600 font-medium">${taskData.total_pay?.toFixed(2) || '0.00'}</p>
                 </div>
 
-                {/* Flecha indicadora */}
                 <div className="shrink-0 text-muted-foreground">
                   {isExpanded ? (
                     <ChevronUp className="h-4 w-4" />
@@ -161,8 +148,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
                   )}
                 </div>
 
-<<<<<<< HEAD
-                {/* ✅ Actions Menu - SOLO se muestra si el usuario tiene permisos para esta tarea */}
                 {showActions && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -196,31 +181,9 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
-=======
-                {/* Actions Menu - SOLO aquí se puede editar/eliminar */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-card border-border w-40">
-                    <DropdownMenuItem className="cursor-pointer gap-2 text-xs" onClick={(e) => { e.stopPropagation(); onEditTask?.(task); }}>
-                      <Pencil className="h-3.5 w-3.5" /> Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      className="cursor-pointer gap-2 text-xs text-destructive" 
-                      onClick={(e) => { e.stopPropagation(); onDeleteTask?.(task); }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" /> Eliminar
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
               </div>
             </div>
 
-            {/* Panel expandible con animación - Muestra información detallada de la tarea */}
             <AnimatePresence>
               {isExpanded && (
                 <motion.div
@@ -232,7 +195,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
                 >
                   <div className="p-4 bg-gradient-to-br from-muted/20 to-muted/5">
                     <div className="space-y-3">
-                      {/* Título del desglose */}
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
                         <p className="text-xs font-semibold text-foreground uppercase tracking-wide">
@@ -240,7 +202,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
                         </p>
                       </div>
                       
-                      {/* Horas Normales */}
                       {hasNormal && (
                         <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-green-500/5 border border-green-500/10">
                           <div className="flex items-center gap-2">
@@ -252,7 +213,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
                         </div>
                       )}
                       
-                      {/* Horas Extra */}
                       {hasOvertime && (
                         <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-amber-500/5 border border-amber-500/10">
                           <div className="flex items-center gap-2">
@@ -264,7 +224,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
                         </div>
                       )}
 
-                      {/* Total */}
                       <div className="flex items-center justify-between pt-2 border-t border-border mt-1">
                         <span className="text-base font-semibold text-foreground">Total</span>
                         <span className="text-xl font-bold text-primary">${Number(taskData.total_pay || 0).toFixed(2)}</span>
