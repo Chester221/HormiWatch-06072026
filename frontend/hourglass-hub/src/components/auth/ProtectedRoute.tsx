@@ -1,8 +1,7 @@
 import { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { Loader2, ShieldOff } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-react'
 
 interface ProtectedRouteProps {
     children: ReactNode
@@ -28,28 +27,29 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
         return <Navigate to="/auth" state={{ from: location }} replace />
     }
 
+    // ✅ Normalizar el rol del usuario (primera letra mayúscula)
+    const userRole = profile?.role 
+        ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1).toLowerCase() 
+        : null;
+
+    // ✅ Normalizar los roles requeridos para comparación
+    const normalizedRequiredRole = requiredRole?.map(role => 
+        role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()
+    );
+
     // Verificar rol si se requiere
-    if (requiredRole && profile && !requiredRole.includes(profile.role)) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="flex flex-col items-center gap-4 text-center max-w-md p-8">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-                        <ShieldOff className="h-8 w-8 text-destructive" />
-                    </div>
-                    <h2 className="text-xl font-bold text-foreground">Acceso Restringido</h2>
-                    <p className="text-muted-foreground">
-                        No tienes permisos para acceder a esta sección. 
-                        Se requiere rol: <strong>{requiredRole.join(' o ')}</strong>.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                        Tu rol actual: <strong>{profile?.role || 'Desconocido'}</strong>
-                    </p>
-                    <Button onClick={() => window.history.back()} variant="outline" className="mt-2">
-                        Volver atrás
-                    </Button>
-                </div>
-            </div>
-        )
+    if (requiredRole && userRole && normalizedRequiredRole && !normalizedRequiredRole.includes(userRole)) {
+        // Redirigir según el rol que SÍ tiene el usuario
+        switch (userRole) {
+            case 'Admin':
+                return <Navigate to="/control-usuarios" replace />
+            case 'Manager':
+                return <Navigate to="/gerencial" replace />
+            case 'Technician':
+                return <Navigate to="/dashboard" replace />
+            default:
+                return <Navigate to="/dashboard" replace />
+        }
     }
 
     return <>{children}</>

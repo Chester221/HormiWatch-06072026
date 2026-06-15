@@ -1,36 +1,69 @@
-import { Plus, Clock, FolderPlus, UserPlus } from "lucide-react";
+import { Plus, FolderPlus, UserPlus, Wrench, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
 interface QuickActionsProps {
-  onLogTime: () => void;
   onNewTask: () => void;
-  onNewProject: () => void;
-  onAddMember: () => void;
+  onNewProject?: () => void;
+  onAddUser?: () => void;        // Solo Admin
+  onManageMember?: () => void;   // Solo Manager
+  onNewService?: () => void;
 }
 
-export function QuickActions({ onLogTime, onNewTask, onNewProject, onAddMember }: QuickActionsProps) {
+export function QuickActions({ 
+  onNewTask, 
+  onNewProject, 
+  onAddUser, 
+  onManageMember, 
+  onNewService 
+}: QuickActionsProps) {
   const { profile } = useAuth();
   
-  // Solo Admin y Manager pueden ver "Añadir Miembro"
-  const canAddMember = profile?.role === 'Admin' || profile?.role === 'Manager';
+  const userRole = profile?.role || 'Technician';
+  const isAdmin = userRole === 'Admin';
+  const isManager = userRole === 'Manager';
+  const isTechnician = userRole === 'Technician';
 
-  const allActions = [
-    { label: "Registrar Tiempo", icon: Clock, primary: true, action: "logTime", show: true },
-    { label: "Nueva Tarea", icon: Plus, primary: false, action: "newTask", show: true },
-    { label: "Nuevo Proyecto", icon: FolderPlus, primary: false, action: "newProject", show: true },
-    { label: "Añadir Miembro", icon: UserPlus, primary: false, action: "addMember", show: canAddMember },
-  ];
+  // 🔒 Configuración de botones según rol (ERS: Matriz de Control de Acceso)
+  const getActions = () => {
+    if (isAdmin) {
+      // Administrador: Nueva Tarea, Agregar Usuario
+      return [
+        { label: "Nueva Tarea", icon: Plus, primary: true, action: "newTask", show: true },
+        { label: "Agregar Usuario", icon: UserPlus, primary: false, action: "addUser", show: true },
+      ];
+    }
+    
+    if (isManager) {
+      // Manager: Nueva Tarea, Nuevo Proyecto, Gestionar Miembro
+      return [
+        { label: "Nueva Tarea", icon: Plus, primary: true, action: "newTask", show: true },
+        { label: "Nuevo Proyecto", icon: FolderPlus, primary: false, action: "newProject", show: true },
+        { label: "Gestionar Miembro", icon: Users, primary: false, action: "manageMember", show: true },
+      ];
+    }
+    
+    if (isTechnician) {
+      // Técnico: Nueva Tarea, Nuevo Servicio
+      return [
+        { label: "Nueva Tarea", icon: Plus, primary: true, action: "newTask", show: true },
+        { label: "Nuevo Servicio", icon: Wrench, primary: false, action: "newService", show: true },
+      ];
+    }
+    
+    return [];
+  };
 
-  const actions = allActions.filter(a => a.show);
+  const actions = getActions().filter(a => a.show);
 
   const handleClick = (action: string) => {
     switch (action) {
-      case "logTime": onLogTime(); break;
       case "newTask": onNewTask(); break;
-      case "newProject": onNewProject(); break;
-      case "addMember": onAddMember(); break;
+      case "newProject": onNewProject?.(); break;
+      case "addUser": onAddUser?.(); break;
+      case "manageMember": onManageMember?.(); break;
+      case "newService": onNewService?.(); break;
     }
   };
 

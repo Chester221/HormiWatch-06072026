@@ -51,13 +51,151 @@ export function TopBar() {
 
   const q = searchQuery.toLowerCase().trim();
 
-  const results: any[] = q ? [
-    ...projects.filter((p: any) => (p.name || '').toLowerCase().includes(q)).slice(0, 3).map((p: any) => ({ type: 'Proyecto', icon: <FolderKanban className="h-4 w-4 text-blue-500" />, label: p.name, sub: p.description, path: '/projects' })),
-    ...tasks.filter((t: any) => (t.description || '').toLowerCase().includes(q)).slice(0, 3).map((t: any) => ({ type: 'Tarea', icon: <CheckSquare className="h-4 w-4 text-green-500" />, label: t.description, sub: t.projects?.name, path: '/tasks' })),
-    ...clients.filter((c: any) => (c.name || '').toLowerCase().includes(q)).slice(0, 3).map((c: any) => ({ type: 'Cliente', icon: <Briefcase className="h-4 w-4 text-orange-500" />, label: c.name, sub: c.ruc || c.address, path: '/clients' })),
-    ...services.filter((s: any) => (s.name || '').toLowerCase().includes(q)).slice(0, 3).map((s: any) => ({ type: 'Servicio', icon: <Wrench className="h-4 w-4 text-purple-500" />, label: s.name, sub: `$${s.default_hourly_rate}/h`, path: '/services' })),
-    ...members.filter((m: any) => (m.full_name || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q)).slice(0, 3).map((m: any) => ({ type: 'Miembro', icon: <Users className="h-4 w-4 text-cyan-500" />, label: m.full_name || m.email, sub: m.role, path: '/team' })),
-  ] : [];
+  // 🔒 Definir qué puede ver cada rol
+  const isAdminOrManager = userRole === 'Admin' || userRole === 'Manager';
+  const isTechnician = userRole === 'Technician';
+
+  // 🔍 Detectar si es una búsqueda por categoría
+  const isSearchingForTasks = q === 'tarea' || q === 'tareas';
+  const isSearchingForServices = q === 'servicio' || q === 'servicios';
+  const isSearchingForProjects = q === 'proyecto' || q === 'proyectos';
+  const isSearchingForClients = q === 'cliente' || q === 'clientes';
+  const isSearchingForMembers = q === 'miembro' || q === 'miembros' || q === 'equipo';
+
+  const results: any[] = [];
+
+  // 📋 TAREAS
+  if (isSearchingForTasks) {
+    // Si busca "tarea/s", muestra TODAS sus tareas (sin filtro de palabra)
+    const filteredTasks = tasks.filter((t: any) => {
+      if (isTechnician) return t.technician_id === user?.id;
+      return true;
+    });
+    results.push(...filteredTasks.slice(0, 5).map((t: any) => ({
+      type: 'Tarea',
+      icon: <CheckSquare className="h-4 w-4 text-green-500" />,
+      label: t.description || 'Sin descripción',
+      sub: t.projects?.name,
+      path: '/tasks'
+    })));
+  } else if (q) {
+    // Búsqueda normal por palabra específica
+    results.push(...tasks
+      .filter((t: any) => {
+        const matchesSearch = (t.description || '').toLowerCase().includes(q);
+        if (isTechnician) return matchesSearch && t.technician_id === user?.id;
+        return matchesSearch;
+      })
+      .slice(0, 5)
+      .map((t: any) => ({
+        type: 'Tarea',
+        icon: <CheckSquare className="h-4 w-4 text-green-500" />,
+        label: t.description || 'Sin descripción',
+        sub: t.projects?.name,
+        path: '/tasks'
+      })));
+  }
+
+  // 🔧 SERVICIOS
+  if (isSearchingForServices) {
+    // Si busca "servicio/s", muestra TODOS los servicios
+    results.push(...services.slice(0, 5).map((s: any) => ({
+      type: 'Servicio',
+      icon: <Wrench className="h-4 w-4 text-purple-500" />,
+      label: s.name,
+      sub: `$${s.default_hourly_rate}/h`,
+      path: '/services'
+    })));
+  } else if (q && !isSearchingForTasks) {
+    // Búsqueda normal por palabra específica (evita duplicados)
+    results.push(...services
+      .filter((s: any) => (s.name || '').toLowerCase().includes(q))
+      .slice(0, 5)
+      .map((s: any) => ({
+        type: 'Servicio',
+        icon: <Wrench className="h-4 w-4 text-purple-500" />,
+        label: s.name,
+        sub: `$${s.default_hourly_rate}/h`,
+        path: '/services'
+      })));
+  }
+
+  // 🚫 SOLO Admin/Manager pueden ver lo siguiente:
+  if (isAdminOrManager) {
+    // PROYECTOS
+    if (isSearchingForProjects) {
+      const filteredProjects = projects.slice(0, 5).map((p: any) => ({
+        type: 'Proyecto',
+        icon: <FolderKanban className="h-4 w-4 text-blue-500" />,
+        label: p.name,
+        sub: p.description,
+        path: '/projects'
+      }));
+      results.push(...filteredProjects);
+    } else if (q && !isSearchingForTasks && !isSearchingForServices) {
+      results.push(...projects
+        .filter((p: any) => (p.name || '').toLowerCase().includes(q))
+        .slice(0, 5)
+        .map((p: any) => ({
+          type: 'Proyecto',
+          icon: <FolderKanban className="h-4 w-4 text-blue-500" />,
+          label: p.name,
+          sub: p.description,
+          path: '/projects'
+        })));
+    }
+
+    // CLIENTES
+    if (isSearchingForClients) {
+      const filteredClients = clients.slice(0, 5).map((c: any) => ({
+        type: 'Cliente',
+        icon: <Briefcase className="h-4 w-4 text-orange-500" />,
+        label: c.name,
+        sub: c.ruc || c.address,
+        path: '/clients'
+      }));
+      results.push(...filteredClients);
+    } else if (q && !isSearchingForTasks && !isSearchingForServices && !isSearchingForProjects) {
+      results.push(...clients
+        .filter((c: any) => (c.name || '').toLowerCase().includes(q))
+        .slice(0, 5)
+        .map((c: any) => ({
+          type: 'Cliente',
+          icon: <Briefcase className="h-4 w-4 text-orange-500" />,
+          label: c.name,
+          sub: c.ruc || c.address,
+          path: '/clients'
+        })));
+    }
+
+    // MIEMBROS
+    if (isSearchingForMembers) {
+      const filteredMembers = members.slice(0, 5).map((m: any) => ({
+        type: 'Miembro',
+        icon: <Users className="h-4 w-4 text-cyan-500" />,
+        label: m.full_name || m.email,
+        sub: m.role,
+        path: '/team'
+      }));
+      results.push(...filteredMembers);
+    } else if (q && !isSearchingForTasks && !isSearchingForServices && !isSearchingForProjects && !isSearchingForClients) {
+      results.push(...members
+        .filter((m: any) => (m.full_name || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q))
+        .slice(0, 5)
+        .map((m: any) => ({
+          type: 'Miembro',
+          icon: <Users className="h-4 w-4 text-cyan-500" />,
+          label: m.full_name || m.email,
+          sub: m.role,
+          path: '/team'
+        })));
+    }
+  }
+
+  // Eliminar duplicados por si acaso
+  const uniqueResults = results.filter((item, index, self) => 
+    index === self.findIndex((t) => t.label === item.label && t.type === item.type)
+  );
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-sm">
@@ -75,116 +213,61 @@ export function TopBar() {
       </div>
 
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-  <DialogContent className="max-w-lg p-0 gap-0 bg-card border-border">
-    <div className="flex items-center border-b border-border px-3">
-      <Search className="h-4 w-4 text-muted-foreground mr-2" />
-      <input
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Escribe para buscar..."
-        className="flex-1 h-12 bg-transparent text-sm outline-none text-foreground placeholder:text-muted-foreground"
-        autoFocus
-      />
-    </div>
-    <div className="max-h-[300px] overflow-y-auto p-2">
-      <AnimatePresence mode="wait">
-        {!q && (
-          <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-10 text-center text-sm text-muted-foreground">
-            <Search className="h-10 w-10 mx-auto mb-3 opacity-20" />
-            <p className="font-medium">Buscar en HormiWatch</p>
-            <p className="text-xs mt-1">Escribe cualquier letra para ver resultados</p>
-          </motion.div>
-        )}
-        {q && results.length === 0 && (
-          <motion.div key="no-results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-10 text-center">
-            <Search className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-30" />
-            <p className="text-sm font-medium">No se encontraron resultados</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              No hay nada relacionado con <strong>"{searchQuery}"</strong>
-            </p>
-          </motion.div>
-        )}
-        {results.length > 0 && (
-          <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <p className="text-xs text-muted-foreground px-2 py-1">Resultados ({results.length})</p>
-            {results.map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.04 }}
-                onClick={() => { navigate(item.path); setSearchOpen(false); setSearchQuery(""); }}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted cursor-pointer transition-colors"
-              >
-                {item.icon}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{item.label}</p>
-                  {item.sub && <p className="text-xs text-muted-foreground truncate">{item.sub}</p>}
-                </div>
-                <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{item.type}</span>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  </DialogContent>
-</Dialog><Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-  <DialogContent className="max-w-lg p-0 gap-0 bg-card border-border">
-    <div className="flex items-center border-b border-border px-3">
-      <Search className="h-4 w-4 text-muted-foreground mr-2" />
-      <input
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Escribe para buscar..."
-        className="flex-1 h-12 bg-transparent text-sm outline-none text-foreground placeholder:text-muted-foreground"
-        autoFocus
-      />
-    </div>
-    <div className="max-h-[300px] overflow-y-auto p-2">
-      <AnimatePresence mode="wait">
-        {!q && (
-          <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-10 text-center text-sm text-muted-foreground">
-            <Search className="h-10 w-10 mx-auto mb-3 opacity-20" />
-            <p className="font-medium">Buscar en HormiWatch</p>
-            <p className="text-xs mt-1">Escribe cualquier letra para ver resultados</p>
-          </motion.div>
-        )}
-        {q && results.length === 0 && (
-          <motion.div key="no-results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-10 text-center">
-            <Search className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-30" />
-            <p className="text-sm font-medium">No se encontraron resultados</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              No hay nada relacionado con <strong>"{searchQuery}"</strong>
-            </p>
-          </motion.div>
-        )}
-        {results.length > 0 && (
-          <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <p className="text-xs text-muted-foreground px-2 py-1">Resultados ({results.length})</p>
-            {results.map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.04 }}
-                onClick={() => { navigate(item.path); setSearchOpen(false); setSearchQuery(""); }}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted cursor-pointer transition-colors"
-              >
-                {item.icon}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{item.label}</p>
-                  {item.sub && <p className="text-xs text-muted-foreground truncate">{item.sub}</p>}
-                </div>
-                <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{item.type}</span>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  </DialogContent>
-</Dialog>
+        <DialogContent className="max-w-lg p-0 gap-0 bg-card border-border">
+          <div className="flex items-center border-b border-border px-3">
+            <Search className="h-4 w-4 text-muted-foreground mr-2" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Escribe para buscar..."
+              className="flex-1 h-12 bg-transparent text-sm outline-none text-foreground placeholder:text-muted-foreground"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-[300px] overflow-y-auto p-2">
+            <AnimatePresence mode="wait">
+              {!q && (
+                <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-10 text-center text-sm text-muted-foreground">
+                  <Search className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                  <p className="font-medium">Buscar en HormiWatch</p>
+                  <p className="text-xs mt-1">Escribe cualquier letra para ver resultados</p>
+                </motion.div>
+              )}
+              {q && uniqueResults.length === 0 && (
+                <motion.div key="no-results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-10 text-center">
+                  <Search className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-30" />
+                  <p className="text-sm font-medium">No se encontraron resultados</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    No hay nada relacionado con <strong>"{searchQuery}"</strong>
+                  </p>
+                </motion.div>
+              )}
+              {uniqueResults.length > 0 && (
+                <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <p className="text-xs text-muted-foreground px-2 py-1">Resultados ({uniqueResults.length})</p>
+                  {uniqueResults.map((item, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      onClick={() => { navigate(item.path); setSearchOpen(false); setSearchQuery(""); }}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                    >
+                      {item.icon}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{item.label}</p>
+                        {item.sub && <p className="text-xs text-muted-foreground truncate">{item.sub}</p>}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{item.type}</span>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex items-center gap-4">
         <DropdownMenu>

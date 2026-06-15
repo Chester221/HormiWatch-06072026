@@ -57,7 +57,7 @@ export function ClientFormModal({ open, onOpenChange, client }: ClientFormModalP
         setFormData({ name: client.name, rif: client.ruc || "", address: client.address || "" });
         setLogoPreview((client as any).logo_url || null);
         setContacts(client.contacts.map(c => ({
-          id: c.id, name: c.name, email: c.email || "", phone: c.phone || "",
+          id: c.id, name: c.name, email: c.email || "", phone: c.phone || "+58 ",
           position: c.position || "", department: (c as any).department || "",
         })));
       } else {
@@ -133,7 +133,7 @@ export function ClientFormModal({ open, onOpenChange, client }: ClientFormModalP
     return urlData.publicUrl;
   };
 
-  const addContact = () => setContacts([...contacts, { id: `new-${Date.now()}`, name: "", email: "", phone: "", position: "", department: "" }]);
+  const addContact = () => setContacts([...contacts, { id: `new-${Date.now()}`, name: "", email: "", phone: "+58 ", position: "", department: "" }]);
   const updateContact = (id: string, field: keyof LocalContact, value: string, index: number) => {
     setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
     setTouched({ ...touched, [`contact_${field}_${index}`]: true });

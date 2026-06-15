@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import type { Tables, InsertTables } from '@/types/supabase'
 
 export type Task = Tables<'tasks'> & {
@@ -10,33 +11,42 @@ export type Task = Tables<'tasks'> & {
 
 export type CreateTaskData = InsertTables<'tasks'>
 
-export const useTasks = (projectId?: string | 'all') => {
+export const useTasks = (projectId?: string | 'all', technicianId?: string) => {
   const fetchTasks = async (): Promise<Task[]> => {
     try {
+      // ✅ Cambiar a 'tasks' en lugar de 'tasks_with_details'
       let query = supabase
-        .from('tasks_with_details')
-        .select('*')
-        .order('start_time', { ascending: false })
+        .from('tasks')
+        .select(`
+          *,
+          projects:project_id(name),
+          services:service_id(name),
+          technicians:technician_id(full_name, avatar_url)
+        `)
+        .order('created_at', { ascending: false })
 
       if (projectId && projectId !== 'all') {
         query = query.eq('project_id', projectId)
       }
 
+      // ✅ Filtrar por técnico si se especifica
+      if (technicianId) {
+        query = query.eq('technician_id', technicianId)
+      }
+
       const { data, error } = await query
 
       if (error) {
-        if (error.code === '42P01' || error.message.includes('does not exist')) {
-          console.warn('La vista tasks_with_details no existe.')
-          return []
-        }
-        throw new Error(error.message)
+        console.error('Error fetching tasks:', error)
+        return []
       }
 
+      // Transformar los datos al formato esperado
       const transformedData = (data || []).map((item: any) => ({
         ...item,
-        projects: item.project_name ? { name: item.project_name } : null,
-        services: item.service_name ? { name: item.service_name } : null,
-        technician: item.technician_name ? { full_name: item.technician_name, avatar_url: null } : null
+        projects: item.projects || null,
+        services: item.services || null,
+        technician: item.technicians || null
       }))
 
       return transformedData as Task[]
@@ -47,7 +57,7 @@ export const useTasks = (projectId?: string | 'all') => {
   }
 
   return useQuery({
-    queryKey: ['tasks', projectId],
+    queryKey: ['tasks', projectId, technicianId],
     queryFn: fetchTasks,
   })
 }
@@ -67,20 +77,21 @@ export const useCreateTask = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      queryClient.refetchQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success('Tarea creada correctamente');
+    },
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`);
     },
   });
 };
 
-// NUEVA MUTACIÓN: Crear múltiples tareas a la vez (para división por días)
 export const useCreateTasks = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (newTasks: any[]) => {
-      if (newTasks.length === 0) throw new Error('No tasks to create');
-      
+      if (newTasks.length === 0) throw new Error('No hay tareas para crear');
       const { data, error } = await supabase
         .from('tasks')
         .insert(newTasks)
@@ -91,7 +102,9 @@ export const useCreateTasks = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.refetchQueries({ queryKey: ['tasks'] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`);
     },
   });
 };
@@ -101,25 +114,22 @@ export const useUpdateTask = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number | string; data: Partial<CreateTaskData> }) => {
-      const { error: updateError } = await supabase
+      const { data: updated, error } = await supabase
         .from('tasks')
         .update(data)
         .eq('id', id)
-
-      if (updateError) throw new Error(updateError.message)
-
-      const { data: updated, error: fetchError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('id', id)
+        .select()
         .single()
 
-      if (fetchError) throw new Error(fetchError.message)
+      if (error) throw new Error(error.message)
       return updated
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      queryClient.refetchQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success('Tarea actualizada');
+    },
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`);
     },
   })
 }
@@ -129,24 +139,21 @@ export const useDeleteTask = () => {
 
   return useMutation({
     mutationFn: async (taskId: string) => {
-      const { error, count } = await supabase
+      const { error } = await supabase
         .from('tasks')
-        .delete({ count: 'exact' })
+        .delete()
         .eq('id', taskId);
       
       if (error) throw error;
       
-      // Si no se eliminó ninguna fila, es por falta de permisos
-      if (count === 0) {
-        throw new Error('No tienes permisos para eliminar esta tarea');
-      }
-      
       return true;
     },
     onSuccess: () => {
-      queryClient.refetchQueries({
-        predicate: (query) => query.queryKey[0] === 'tasks'
-      })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success('Tarea eliminada');
+    },
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`);
     },
   })
 }

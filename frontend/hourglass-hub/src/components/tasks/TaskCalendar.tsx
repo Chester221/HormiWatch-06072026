@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks } from "date-fns";
+import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Clock, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, CheckCircle2, Sun, Moon, CalendarX } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface Task {
@@ -49,20 +50,40 @@ export function TaskCalendar({ tasks, view, onTaskClick }: TaskCalendarProps) {
   };
 
   const days = getDaysToDisplay();
-  const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const weekDays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
   const getTasksForDay = (day: Date) => {
     return tasks.filter(task => isSameDay(new Date(task.date), day));
+  };
+
+  // ✅ Colores por estado
+  const getTaskColor = (task: Task) => {
+    const t = task as any;
+    if (t.isHoliday || t.is_holiday) return "bg-red-500/10 text-red-600 border-red-500/20";
+    if (task.completed) return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+    if (t.overtime_hours > 0 && t.normal_hours > 0) return "bg-purple-500/10 text-purple-600 border-purple-500/20";
+    if (t.overtime_hours > 0) return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+    return "bg-blue-500/10 text-blue-600 border-blue-500/20";
+  };
+
+  // ✅ Icono por estado
+  const getTaskIcon = (task: Task) => {
+    const t = task as any;
+    if (t.isHoliday || t.is_holiday) return <CalendarX className="h-3 w-3 shrink-0" />;
+    if (task.completed) return <CheckCircle2 className="h-3 w-3 shrink-0" />;
+    if (t.overtime_hours > 0 && t.normal_hours > 0) return <Moon className="h-3 w-3 shrink-0" />;
+    if (t.overtime_hours > 0) return <Moon className="h-3 w-3 shrink-0" />;
+    return <Clock className="h-3 w-3 shrink-0" />;
   };
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
       {/* Calendar Header */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-foreground">
+        <h2 className="text-xl font-bold text-foreground capitalize">
           {view === "month" 
-            ? format(currentDate, "MMMM yyyy")
-            : `${format(days[0], "MMM d")} - ${format(days[6], "MMM d, yyyy")}`
+            ? format(currentDate, "MMMM yyyy", { locale: es })
+            : `${format(days[0], "MMM d", { locale: es })} - ${format(days[6], "MMM d, yyyy", { locale: es })}`
           }
         </h2>
         <div className="flex items-center gap-2">
@@ -70,7 +91,7 @@ export function TaskCalendar({ tasks, view, onTaskClick }: TaskCalendarProps) {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
-            Today
+            Hoy
           </Button>
           <Button variant="outline" size="icon" onClick={navigateNext}>
             <ChevronRight className="h-4 w-4" />
@@ -119,25 +140,19 @@ export function TaskCalendar({ tasks, view, onTaskClick }: TaskCalendarProps) {
                     key={task.id}
                     onClick={() => onTaskClick?.(task)}
                     className={cn(
-                      "w-full text-left text-xs p-1.5 rounded transition-colors truncate",
-                      task.completed
-                        ? "bg-success/10 text-success hover:bg-success/20"
-                        : "bg-primary/10 text-primary hover:bg-primary/20"
+                      "w-full text-left text-xs p-1.5 rounded transition-colors truncate border",
+                      getTaskColor(task)
                     )}
                   >
                     <div className="flex items-center gap-1">
-                      {task.completed ? (
-                        <CheckCircle2 className="h-3 w-3 shrink-0" />
-                      ) : (
-                        <Clock className="h-3 w-3 shrink-0" />
-                      )}
+                      {getTaskIcon(task)}
                       <span className="truncate">{task.title || task.serviceType}</span>
                     </div>
                   </button>
                 ))}
                 {dayTasks.length > (view === "week" ? 5 : 2) && (
                   <p className="text-xs text-muted-foreground text-center">
-                    +{dayTasks.length - (view === "week" ? 5 : 2)} more
+                    +{dayTasks.length - (view === "week" ? 5 : 2)} más
                   </p>
                 )}
               </div>

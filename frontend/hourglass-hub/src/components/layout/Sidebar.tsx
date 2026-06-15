@@ -10,7 +10,9 @@ import {
   Clock,
   User,
   Calendar,
-  FileBarChart
+  FileBarChart,
+  Shield,
+  BarChart3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,33 +22,73 @@ interface NavItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  managerOnly?: boolean; // Solo visible para líderes
+  roles?: string[];
 }
 
 const navigation: NavItem[] = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Proyectos", href: "/projects", icon: FolderKanban, managerOnly: true },
-  { name: "Mis Tareas", href: "/tasks", icon: CheckSquare },
-  { name: "Clientes", href: "/clients", icon: Briefcase, managerOnly: true },
-  { name: "Equipo", href: "/team", icon: Users, managerOnly: true },
-  { name: "Servicios", href: "/services", icon: UserCircle, managerOnly: true },
-  { name: "Feriados", href: "/holidays", icon: Calendar, managerOnly: true },
-  { name: "Reportes", href: "/reports", icon: FileBarChart, managerOnly: true },
+  // ✅ Dashboard Técnico (solo Técnicos)
+  { name: "Mi Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["Technician"] },
+  
+  // ✅ Dashboard Gerencial (solo Manager)
+  { name: "Dashboard Gerencial", href: "/gerencial", icon: BarChart3, roles: ["Manager"] },
+  
+  // ✅ Control de Usuarios (solo Admin)
+  { name: "Control de Usuarios", href: "/control-usuarios", icon: Shield, roles: ["Admin"] },
+  
+  // ✅ Proyectos (Admin y Manager y Técnico - cada uno con diferentes permisos)
+  { name: "Proyectos", href: "/projects", icon: FolderKanban, roles: ["Manager", "Admin", "Technician"] },
+  
+  // ✅ Mis Tareas (todos)
+  { name: "Mis Tareas", href: "/tasks", icon: CheckSquare, roles: ["Manager", "Admin", "Technician"] },
+  
+  // ✅ Clientes (Manager y Admin)
+  { name: "Clientes", href: "/clients", icon: Briefcase, roles: ["Manager", "Admin"] },
+  
+  // ✅ Equipo (Manager y Admin)
+  { name: "Equipo", href: "/team", icon: Users, roles: ["Manager", "Admin"] },
+  
+  // ✅ Servicios (Manager, Admin y Técnico)
+  { name: "Servicios", href: "/services", icon: UserCircle, roles: ["Manager", "Admin", "Technician"] },
+  
+  // ✅ Feriados (Manager y Admin)
+  { name: "Feriados", href: "/holidays", icon: Calendar, roles: ["Manager", "Admin"] },
+  
+  // ✅ Reportes (Manager y Admin)
+  { name: "Reportes", href: "/reports", icon: FileBarChart, roles: ["Manager", "Admin"] },
 ];
 
 const bottomNavigation: NavItem[] = [
-  { name: "Mi Perfil", href: "/profile", icon: User },
-  { name: "Configuración", href: "/settings", icon: Settings },
+  // ✅ Mi Perfil (todos)
+  { name: "Mi Perfil", href: "/profile", icon: User, roles: ["Manager", "Admin", "Technician"] },
+  
+  // ✅ Configuración (todos)
+  { name: "Configuración", href: "/settings", icon: Settings, roles: ["Manager", "Admin", "Technician"] },
 ];
 
 export function Sidebar() {
-  const { isManager, profile } = useAuth();
+  const { profile } = useAuth();
+  const userRole = profile?.role || "Technician";
 
   // Filtrar navegación según rol
   const filteredNavigation = navigation.filter(item => {
-    if (item.managerOnly && !isManager) return false;
-    return true;
+    if (!item.roles) return true;
+    return item.roles.includes(userRole);
   });
+
+  const filteredBottomNavigation = bottomNavigation.filter(item => {
+    if (!item.roles) return true;
+    return item.roles.includes(userRole);
+  });
+
+  // Determinar el rol display
+  const getRoleDisplay = () => {
+    switch (userRole) {
+      case "Manager": return "🎯 Manager";
+      case "Admin": return "🛡️ Administrador";
+      case "Technician": return "👨‍💻 Técnico";
+      default: return "👤 Usuario";
+    }
+  };
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar">
@@ -65,11 +107,13 @@ export function Sidebar() {
         <div className="px-3 py-3">
           <div className={cn(
             "rounded-lg px-3 py-2 text-xs font-medium",
-            isManager
+            userRole === "Manager"
               ? "bg-primary/10 text-primary border border-primary/20"
+              : userRole === "Admin"
+              ? "bg-purple-500/10 text-purple-500 border border-purple-500/20"
               : "bg-muted text-muted-foreground"
           )}>
-            {isManager ? "🎯 Manager" : "👨‍💻 Técnico"}
+            {getRoleDisplay()}
           </div>
         </div>
 
@@ -101,7 +145,7 @@ export function Sidebar() {
           <p className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
             Cuenta
           </p>
-          {bottomNavigation.map((item, index) => (
+          {filteredBottomNavigation.map((item, index) => (
             <NavLink
               key={item.name}
               to={item.href}

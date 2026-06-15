@@ -1,21 +1,17 @@
-import { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner';
+} from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface TaskEditModalProps {
   task: any;
@@ -25,16 +21,16 @@ interface TaskEditModalProps {
 }
 
 export function TaskEditModal({ task, open, onOpenChange, onSuccess }: TaskEditModalProps) {
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState('Pending');
-  const [notes, setNotes] = useState('');
+  const [description, setDescription] = useState("");
+  const [status, setStatus] = useState("Pending");
+  const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (task) {
-      setDescription(task.description || '');
-      setStatus(task.status || 'Pending');
-      setNotes(task.notes || '');
+      setDescription(task.description || "");
+      setStatus(task.status || "Pending");
+      setNotes(task.notes || "");
     }
   }, [task]);
 
@@ -44,77 +40,63 @@ export function TaskEditModal({ task, open, onOpenChange, onSuccess }: TaskEditM
     
     setIsSubmitting(true);
     
-    const updatedData = { 
-      description, 
-      status,
-      notes,
-      updated_at: new Date().toISOString()
-    };
-    
-    onSuccess(updatedData);
-    onOpenChange(false);
-    setIsSubmitting(false);
+    try {
+      const updatedData = { description, status, notes };
+      await onSuccess(updatedData);
+    } catch (error: any) {
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!task) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card border-border">
+      <DialogContent className="max-w-md bg-card border-border">
         <DialogHeader>
           <DialogTitle>Editar Tarea</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="description">Descripción</Label>
+          <div>
+            <Label>Descripción</Label>
             <Textarea
-              id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descripción de la tarea"
               rows={3}
               className="bg-background"
             />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Observaciones</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Observaciones sobre la tarea..."
-              rows={2}
-              className="bg-background"
-            />
-          </div>
-
-          <div className="space-y-2">
+          <div>
             <Label>Estado</Label>
-            <Select value={status} onValueChange={setStatus} disabled={task?.status === 'Completed'}>
-              <SelectTrigger className="bg-background">
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Pending">Pendiente</SelectItem>
-                <SelectItem value="In_Progress">En Progreso</SelectItem>
+                <SelectItem value="In Progress">En Progreso</SelectItem>
                 <SelectItem value="Completed">Completada</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
-            </Button>
+          <div>
+            <Label>Observaciones</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              className="bg-background"
+            />
           </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Guardar
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

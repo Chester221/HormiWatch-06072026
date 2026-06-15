@@ -2,10 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import Dashboard from "./pages/Dashboard";
+import TechnicianDashboard from "./pages/TechnicianDashboard";  
+import ManagerDashboard from "./pages/Manager/DashboardMG";   
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
 import Clients from "./pages/Clients";
@@ -17,6 +18,7 @@ import Auth from "./pages/Auth";
 import Holidays from "./pages/Holidays";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "@/pages/Admin/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -51,24 +53,65 @@ const AuthErrorBoundary = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// ✅ Componente para redirigir según el rol al dashboard principal
+const RoleBasedDashboard = () => {
+  const { profile, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+  
+  // ✅ Normalizar rol (primera letra mayúscula)
+  const rawRole = profile?.role;
+  const role = rawRole ? rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase() : null;
+  
+  console.log("🔍 Rol detectado:", role);
+
+  // Redirigir según el rol
+  if (role === 'Manager') {
+    return <Navigate to="/gerencial" replace />;
+  }
+  if (role === 'Admin') {
+    return <Navigate to="/control-usuarios" replace />;
+  }
+  // Technician o cualquier otro → Dashboard técnico
+  return <Navigate to="/dashboard" replace />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <AuthErrorBoundary>
-          <BrowserRouter>
+        <HashRouter>
+          <AuthErrorBoundary>
             <Routes>
               {/* Ruta pública - Login/Registro */}
               <Route path="/auth" element={<Auth />} />
 
-              {/* Rutas protegidas - Disponibles para todos los usuarios autenticados */}
-              <Route path="/" element={
+              {/* ✅ Ruta principal - Redirige según el rol */}
+              <Route path="/" element={<RoleBasedDashboard />} />
+
+              {/* ✅ Dashboard de Técnicos */}
+              <Route path="/dashboard" element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <TechnicianDashboard />
                 </ProtectedRoute>
               } />
+
+              {/* ✅ Dashboard Gerencial (solo Manager) */}
+              <Route path="/gerencial" element={
+                <ProtectedRoute requiredRole={['Manager']}>
+                  <ManagerDashboard />
+                </ProtectedRoute>
+              } />
+
+              {/* Rutas para todos los autenticados */}
               <Route path="/tasks" element={
                 <ProtectedRoute>
                   <Tasks />
@@ -85,46 +128,60 @@ const App = () => (
                 </ProtectedRoute>
               } />
 
-              {/* Rutas protegidas - Principalmente para líderes (pero accesibles) */}
-              {/* La lógica de mostrar/ocultar está en el Sidebar */}
-              {/* Los técnicos pueden acceder si conocen la URL, pero verán datos limitados */}
+              {/* ✅ Proyectos - También para Técnicos (solo lectura) */}
               <Route path="/projects" element={
-  <ProtectedRoute requiredRole={['Manager', 'Admin']}>
-    <Projects />
-  </ProtectedRoute>
-} />
-<Route path="/clients" element={
-  <ProtectedRoute requiredRole={['Manager', 'Admin']}>
-    <Clients />
-  </ProtectedRoute>
-} />
-<Route path="/team" element={
-  <ProtectedRoute requiredRole={['Manager', 'Admin']}>
-    <Team />
-  </ProtectedRoute>
-} />
-<Route path="/services" element={
-  <ProtectedRoute requiredRole={['Manager', 'Admin']}>
-    <Services />
-  </ProtectedRoute>
-} />
-<Route path="/holidays" element={
-  <ProtectedRoute requiredRole={['Manager', 'Admin']}>
-    <Holidays />
-  </ProtectedRoute>
-} />
-<Route path="/reports" element={
-  <ProtectedRoute requiredRole={['Manager', 'Admin']}>
-    <Reports />
-  </ProtectedRoute>
-} />
- 
+                <ProtectedRoute requiredRole={['Manager', 'Admin', 'Technician']}>
+                  <Projects />
+                </ProtectedRoute>
+              } />
+
+              {/* ✅ Clientes - Solo Manager y Admin */}
+              <Route path="/clients" element={
+                <ProtectedRoute requiredRole={['Manager', 'Admin']}>
+                  <Clients />
+                </ProtectedRoute>
+              } />
+
+              {/* ✅ Equipo - Solo Manager y Admin */}
+              <Route path="/team" element={
+                <ProtectedRoute requiredRole={['Manager', 'Admin']}>
+                  <Team />
+                </ProtectedRoute>
+              } />
+
+              {/* ✅ Servicios - También para Técnicos */}
+              <Route path="/services" element={
+                <ProtectedRoute requiredRole={['Manager', 'Admin', 'Technician']}>
+                  <Services />
+                </ProtectedRoute>
+              } />
+
+              {/* ✅ Feriados - Solo Manager y Admin */}
+              <Route path="/holidays" element={
+                <ProtectedRoute requiredRole={['Manager', 'Admin']}>
+                  <Holidays />
+                </ProtectedRoute>
+              } />
+
+              {/* ✅ Reportes - Solo Manager y Admin */}
+              <Route path="/reports" element={
+                <ProtectedRoute requiredRole={['Manager', 'Admin']}>
+                  <Reports />
+                </ProtectedRoute>
+              } />
+
+              {/* ✅ Ruta exclusiva para Administrador */}
+              <Route path="/control-usuarios" element={
+                <ProtectedRoute requiredRole={['Admin']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
 
               {/* Ruta 404 */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </AuthErrorBoundary>
+          </AuthErrorBoundary>
+        </HashRouter>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

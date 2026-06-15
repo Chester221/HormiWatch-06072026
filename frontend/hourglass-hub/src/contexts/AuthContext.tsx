@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         updated_at: new Date().toISOString(),
                     };
 
-                    const { data: createdProfile, error: createError } = await (supabase as any)
+                    const { data: createdProfile, error: createError } = await supabase
                         .from('profiles')
                         .insert(newProfile)
                         .select()
@@ -90,14 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             setLoading(true);
             setAuthError(null);
-
             const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-
             if (sessionError) throw sessionError;
-
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
-
             if (currentSession?.user) {
                 try {
                     const profileData = await fetchProfile(currentSession.user.id, currentSession.user);
@@ -110,7 +106,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } else {
                 setProfile(null);
             }
-
         } catch (err: any) {
             console.error('Error inicializando auth:', err);
             setAuthError(`Error de conexión: ${err.message}`);
@@ -121,81 +116,97 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         initializeAuth();
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, newSession) => {
-                console.log("Auth Event:", event);
-
-                if (event === 'SIGNED_OUT') {
-                    setSession(null);
-                    setUser(null);
-                    setProfile(null);
-                    setLoading(false);
-                } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                    initializeAuth();
-                }
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+            console.log("Auth Event:", event);
+            if (event === 'SIGNED_OUT') {
+                setSession(null); setUser(null); setProfile(null); setLoading(false);
+            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                initializeAuth();
             }
-        );
-
-        return () => {
-            subscription.unsubscribe();
-        };
+        });
+        return () => { subscription.unsubscribe(); };
     }, [initializeAuth]);
 
+    // ═══════════════ LOGIN SEGURO ═══════════════
     const signIn = async (email: string, password: string) => {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        return { error }
+        if (!email || !password) {
+            return { error: { message: 'Completa todos los campos' } as AuthError };
+        }
+        if (!email.includes('@') || !email.includes('.')) {
+            return { error: { message: 'Formato de email inválido' } as AuthError };
+        }
+        const cleanEmail = email.toLowerCase().trim();
+        const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+        if (error) {
+            if (error.message.includes('Invalid login credentials')) {
+                return { error: { message: 'Email o contraseña incorrectos' } as AuthError };
+            }
+            if (error.message.includes('Email not confirmed')) {
+                return { error: { message: 'Debes confirmar tu email antes de iniciar sesión' } as AuthError };
+            }
+        }
+        return { error };
     }
 
+    // ═══════════════ REGISTRO SEGURO ═══════════════
     const signUp = async (email: string, password: string, metadata?: { full_name?: string }) => {
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: metadata,
-            },
-        });
-
-        // Si no hay error, crear perfil inmediatamente sin esperar confirmación
-        if (!error && data?.user) {
-            await supabase.from('profiles').upsert({
-                id: data.user.id,
-                email: email,
-                full_name: metadata?.full_name || email.split('@')[0],
-                role: 'Viewer',
-            }, { onConflict: 'id' });
+        // Validar formato de email
+        if (!email || !email.includes('@') || !email.includes('.')) {
+            return { error: { message: 'Formato de email inválido' } as AuthError };
         }
-
-        return { error };
+        // Validar contraseña
+        if (!password || password.length < 6) {
+            return { error: { message: 'La contraseña debe tener al menos 6 caracteres' } as AuthError };
+        }
+        // Normalizar email
+        const cleanEmail = email.toLowerCase().trim();
+        // Verificar si ya existe en profiles
+        const { data: existingProfile } = await supabase.from('profiles').select('id').eq('email', cleanEmail).single();
+        if (existingProfile) {
+            return { error: { message: 'Este email ya está registrado. Inicia sesión.' } as AuthError };
+        }
+        // Registrar
+        const { data, error } = await supabase.auth.signUp({
+            email: cleanEmail,
+            password,
+            options: { data: { full_name: metadata?.full_name?.trim() || cleanEmail.split('@')[0] } },
+        });
+        if (error) {
+            if (error.message.includes('already registered') || error.message.includes('already exists')) {
+                return { error: { message: 'Este email ya está registrado. Inicia sesión.' } as AuthError };
+            }
+            return { error };
+        }
+        // Crear perfil
+        if (data?.user) {
+            const { error: profileError } = await supabase.from('profiles').insert({
+                id: data.user.id,
+                email: cleanEmail,
+                full_name: metadata?.full_name?.trim() || cleanEmail.split('@')[0],
+                role: 'Viewer',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            });
+            if (profileError) {
+                // Rollback: eliminar usuario auth si falla el perfil
+                await supabase.auth.admin.deleteUser(data.user.id);
+                return { error: { message: 'Error al crear el perfil. Intenta de nuevo.' } as AuthError };
+            }
+        }
+        return { error: null };
     }
 
     const signOut = async () => {
         await supabase.auth.signOut()
-        setProfile(null)
-        setUser(null)
-        setSession(null)
-        localStorage.removeItem('id_usuario')
-        localStorage.removeItem('nombre_usuario')
-        localStorage.removeItem('authToken')
+        setProfile(null); setUser(null); setSession(null)
+        localStorage.removeItem('id_usuario'); localStorage.removeItem('nombre_usuario'); localStorage.removeItem('authToken')
     }
 
     const updateProfile = async (updates: Partial<Pick<UserProfile, 'full_name' | 'avatar_url'>>) => {
         if (!user) return { error: new Error('No hay usuario autenticado') }
-
         try {
-            const client = supabase as any
-            const result = await client
-                .from('profiles')
-                .update({
-                    ...updates,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', user.id)
-
-            if (result.error) {
-                console.warn('Error updating profile in DB:', result.error.message)
-            }
-
+            const result = await supabase.from('profiles').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', user.id)
+            if (result.error) console.warn('Error updating profile:', result.error.message)
             setProfile(prev => prev ? { ...prev, ...updates } : null)
             return { error: null }
         } catch (err) {
@@ -206,31 +217,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const uploadAvatar = async (file: File): Promise<{ url: string | null; error: Error | null }> => {
         if (!user) return { url: null, error: new Error('No hay usuario autenticado') }
-
         try {
             const fileExt = file.name.split('.').pop()
             const fileName = `${user.id}-${Date.now()}.${fileExt}`
-            const filePath = fileName
-
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, file, { upsert: true })
-
+            const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true })
             if (uploadError) {
-                if (uploadError.message.includes('Bucket not found')) {
-                    console.warn('Bucket "avatars" no existe.')
-                    return {
-                        url: null,
-                        error: new Error('El almacenamiento de avatares no está configurado.')
-                    }
-                }
+                if (uploadError.message.includes('Bucket not found')) return { url: null, error: new Error('Almacenamiento no configurado.') }
                 return { url: null, error: new Error(uploadError.message) }
             }
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(filePath)
-
+            const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
             await updateProfile({ avatar_url: publicUrl })
             return { url: publicUrl, error: null }
         } catch (err) {
@@ -238,36 +233,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
 
-    const value = {
-        user,
-        session,
-        profile,
-        loading,
-        isManager,
-        error: authError,
-        signIn,
-        signUp,
-        signOut,
-        updateProfile,
-        uploadAvatar,
-        refreshProfile: initializeAuth,
-    }
+    const value = { user, session, profile, loading, isManager, error: authError, signIn, signUp, signOut, updateProfile, uploadAvatar, refreshProfile: initializeAuth }
 
-    if (authError && !loading) {
-        // La UI puede manejar este error
-    }
-
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    )
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
     const context = useContext(AuthContext)
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider')
-    }
+    if (context === undefined) throw new Error('useAuth must be used within an AuthProvider')
     return context
 }
