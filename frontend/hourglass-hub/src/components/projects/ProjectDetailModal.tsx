@@ -80,6 +80,20 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
   const [taskFormOpen, setTaskFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
+<<<<<<< HEAD
+=======
+
+  // Cargar miembros del proyecto desde project_members
+  useEffect(() => {
+    if (open && project) {
+      supabase
+        .from('project_members')
+        .select('*, profiles(id, full_name, avatar_url)')
+        .eq('project_id', project.id)
+        .then(({ data }) => setProjectMembers(data || []));
+    }
+  }, [open, project]);
+>>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
 
   useEffect(() => {
     if (open && project) {
@@ -289,8 +303,14 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
                   <div><p className="text-xs text-muted-foreground">Fin</p><p className="font-medium">{new Date(project.endDate).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}</p></div>
                 </div>
               </div>
+              {/* ✅ Equipo del Proyecto desde project_members */}
               <div className="rounded-xl border bg-card p-4">
                 <h4 className="font-semibold mb-4 flex items-center gap-2"><Users className="h-4 w-4 text-primary" />Equipo del Proyecto</h4>
+<<<<<<< HEAD
+=======
+                
+                {/* Líder */}
+>>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
                 <div className="mb-4">
                   <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1"><Crown className="h-3 w-3 text-amber-500" /> Líder</p>
                   {project.teamLead.name !== "Sin líder" ? (
@@ -302,6 +322,7 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
                         </AvatarFallback>
                       </Avatar>
                       <div><p className="font-medium">{project.teamLead.name}</p><p className="text-xs text-amber-500">👑 Líder</p></div>
+<<<<<<< HEAD
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground italic">No asignado</p>
@@ -329,6 +350,37 @@ export function ProjectDetailModal({ project, open, onOpenChange }: ProjectDetai
                       ))}
                     </div>
                   ) : (
+=======
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No asignado</p>
+                  )}
+                </div>
+
+                {/* Miembros */}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1"><Users className="h-3 w-3" /> Miembros</p>
+                  {project.team.length > 0 ? (
+                    <div className="space-y-2">
+                      {project.team.map((m, i) => (
+                        <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+                          <Avatar className="h-9 w-9">
+                            <AvatarImage src={m.avatar} />
+                            <AvatarFallback className="bg-muted text-muted-foreground text-xs font-bold">
+                              {m.name?.charAt(0).toUpperCase() || '?'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{m.name}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {m.role === 'leader' ? '👑 Líder' : '👤 Miembro'}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+>>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
                     <div className="text-center py-4 text-xs text-muted-foreground bg-muted/20 rounded-xl">
                       <Users className="h-6 w-6 mx-auto mb-1 opacity-30" />
                       No hay miembros asignados

@@ -29,7 +29,11 @@ export const useTasks = (projectId?: string | 'all', technicianId?: string) => {
         query = query.eq('project_id', projectId)
       }
 
+<<<<<<< HEAD
       // ✅ Filtrar por técnico si se especifica
+=======
+      // ✅ Filtrar por técnico si se especifica (para Viewer)
+>>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
       if (technicianId) {
         query = query.eq('technician_id', technicianId)
       }
@@ -114,6 +118,10 @@ export const useUpdateTask = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number | string; data: Partial<CreateTaskData> }) => {
+<<<<<<< HEAD
+=======
+      // ✅ Hacer update + select en una sola operación
+>>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
       const { data: updated, error } = await supabase
         .from('tasks')
         .update(data)

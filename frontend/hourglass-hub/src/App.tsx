@@ -2,7 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+<<<<<<< HEAD
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+=======
+import { HashRouter, Routes, Route } from "react-router-dom";
+>>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import TechnicianDashboard from "./pages/TechnicianDashboard";  
@@ -88,8 +92,13 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+<<<<<<< HEAD
         <HashRouter>
           <AuthErrorBoundary>
+=======
+        <AuthErrorBoundary>
+          <HashRouter>
+>>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
             <Routes>
               {/* Ruta pública - Login/Registro */}
               <Route path="/auth" element={<Auth />} />
@@ -180,8 +189,13 @@ const App = () => (
               {/* Ruta 404 */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+<<<<<<< HEAD
           </AuthErrorBoundary>
         </HashRouter>
+=======
+          </HashRouter>
+        </AuthErrorBoundary>
+>>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

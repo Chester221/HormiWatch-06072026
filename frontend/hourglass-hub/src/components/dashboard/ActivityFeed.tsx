@@ -568,6 +568,7 @@ export function ActivityFeed() {
       </motion.div>
 
       {/* Modal expandido */}
+<<<<<<< HEAD
 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
   <DialogContent className="max-w-4xl w-[90vw] h-[85vh] bg-card border-border flex flex-col p-0 rounded-2xl shadow-2xl overflow-hidden">
     <motion.div 
@@ -643,6 +644,91 @@ export function ActivityFeed() {
     </motion.div>
   </DialogContent>
 </Dialog>
+=======
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl w-[90vw] h-[85vh] bg-card border-border flex flex-col p-0 rounded-2xl shadow-2xl overflow-hidden">
+          <motion.div 
+            className="flex flex-col h-full"
+            variants={modalVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            <div className="p-5 border-b border-border shrink-0 bg-gradient-to-r from-primary/5 to-transparent">
+              <div className="flex items-center justify-between">
+                <motion.div 
+                  className="flex items-center gap-2"
+                  initial={{ x: -10, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Activity className="h-6 w-6 text-primary" />
+                  <h2 className="text-2xl font-bold text-foreground">Actividad Reciente</h2>
+                </motion.div>
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 rounded-full hover:bg-muted transition-colors"
+                >
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </motion.button>
+              </div>
+              <motion.p 
+                className="text-sm text-muted-foreground mt-1"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15 }}
+              >
+                Historial de tareas, proyectos y eventos del sistema
+              </motion.p>
+              
+              {/* Filtros también en el modal */}
+              <motion.div 
+                className="flex items-center gap-1.5 flex-wrap mt-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {typeButtons.map((btn, i) => (
+                  <motion.button
+                    key={btn.value}
+                    variants={buttonVariants}
+                    initial="idle"
+                    whileHover="hover"
+                    whileTap="tap"
+                    animate="idle"
+                    transition={{ delay: i * 0.05 }}
+                    onClick={() => setSelectedType(btn.value)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      selectedType === btn.value
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "text-muted-foreground hover:bg-muted/50"
+                    }`}
+                  >
+                    <btn.icon className="h-3 w-3" />
+                    {btn.label}
+                  </motion.button>
+                ))}
+              </motion.div>
+            </div>
+            
+            {/* Lista de actividades en el modal */}
+            <div className="flex-1 min-h-0">
+              <ActivityList 
+                tasks={tasks}
+                projects={projects}
+                user={user}
+                profile={profile}
+                isTechnician={isTechnician}
+                isManagerOrAdmin={isManagerOrAdmin}
+                selectedType={selectedType}
+              />
+            </div>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
+>>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
     </>
   );
 }

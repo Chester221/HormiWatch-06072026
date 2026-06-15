@@ -10,10 +10,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Task } from "./TaskCalendar";
 
 interface TaskListProps {
+<<<<<<< HEAD
   tasks: (Task & {
     canEdit?: boolean;
     canDelete?: boolean;
   })[];
+=======
+  tasks: Task[];
+>>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: any) => void;
 }
@@ -65,11 +69,14 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
         const isMixed = hasNormal && hasOvertime;
         const isExpanded = expandedTasks.has(task.id);
         const isHoliday = taskData.isHoliday || taskData.is_holiday;
+<<<<<<< HEAD
         
         // ✅ Permisos específicos para esta tarea
         const canEditThis = task.canEdit === true;
         const canDeleteThis = task.canDelete === true;
         const showActions = canEditThis || canDeleteThis;
+=======
+>>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
 
         return (
           <motion.div
@@ -154,6 +161,7 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
                   )}
                 </div>
 
+<<<<<<< HEAD
                 {/* ✅ Actions Menu - SOLO se muestra si el usuario tiene permisos para esta tarea */}
                 {showActions && (
                   <DropdownMenu>
@@ -188,6 +196,27 @@ export function TaskList({ tasks, onEditTask, onDeleteTask }: TaskListProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
+=======
+                {/* Actions Menu - SOLO aquí se puede editar/eliminar */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-card border-border w-40">
+                    <DropdownMenuItem className="cursor-pointer gap-2 text-xs" onClick={(e) => { e.stopPropagation(); onEditTask?.(task); }}>
+                      <Pencil className="h-3.5 w-3.5" /> Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="cursor-pointer gap-2 text-xs text-destructive" 
+                      onClick={(e) => { e.stopPropagation(); onDeleteTask?.(task); }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+>>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
               </div>
             </div>
 
