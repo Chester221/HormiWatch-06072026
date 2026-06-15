@@ -43,27 +43,18 @@ const Tasks = () => {
   const [justificationError, setJustificationError] = useState("");
   const { data: clients = [] } = useClientsWithContacts();
 
-<<<<<<< HEAD
   const { user, profile } = useAuth();
   const userRole = profile?.role;
   
-  // ✅ Definir permisos globales
   const isAdmin = userRole === 'Admin';
   const isManager = userRole === 'Manager';
   const isTechnician = userRole === 'Technician';
   
-  // ✅ Permisos según rol
-  // Admin: NO puede crear, editar, eliminar, exportar
-  // Manager: SÍ puede crear, editar, eliminar (con justificación), exportar
-  // Técnico: SÍ puede crear, editar, eliminar (solo sus propias tareas), NO exportar
   const canCreateTask = isManager || isTechnician;
   const canEditTask = isManager || isTechnician;
   const canDeleteTask = isManager || isTechnician;
-  const canExport = isManager; // Solo Manager puede exportar
-  
-=======
-  const { user, profile, userRole } = useAuth();
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
+  const canExport = isManager;
+
   const { data: projectsList, isLoading: isLoadingProjects } = useProjects();
   const { data: servicesList = [] } = useServices();
   const { holidays } = useHolidays();
@@ -73,11 +64,6 @@ const Tasks = () => {
   const updateTaskMutation = useUpdateTask();
   const deleteTaskMutation = useDeleteTask();
 
-<<<<<<< HEAD
-  // ✅ Obtener proyectos donde el Manager es líder (para validar permisos)
-=======
-  // ✅ Obtener proyectos donde el Manager es líder
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
   const managerProjects = projectsList?.filter((p: any) => p.project_leader_id === user?.id) || [];
 
   const handleCreateTask = async (data: any) => {
@@ -107,12 +93,8 @@ const Tasks = () => {
     const hourlyRate = selectedService?.default_hourly_rate || 0;
     const holidaysList = (holidays.data || []).filter(h => !h.is_working_day).map(h => h.date);
     const breakdown = calculateTaskBreakdown(start_time, end_time, hourlyRate, holidaysList);
-<<<<<<< HEAD
     
     const tasksToCreate = breakdown.days.map((day: any) => ({
-=======
-    const tasksToCreate = breakdown.days.map(day => ({
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
       project_id: data.projectId, 
       service_id: data.serviceId, 
       technician_id: user.id,
@@ -129,10 +111,7 @@ const Tasks = () => {
       overtime_pay: day.overtimePay, 
       total_pay: day.totalPay,
     }));
-<<<<<<< HEAD
     
-=======
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
     createTasksMutation.mutate(tasksToCreate, { 
       onSuccess: () => { 
         toast.success('Tarea registrada'); 
@@ -144,13 +123,10 @@ const Tasks = () => {
   };
 
   const handleDeleteTask = (task: any) => { 
-<<<<<<< HEAD
     if (!canDeleteTask) {
       toast.error("No tienes permisos para eliminar tareas");
       return;
     }
-=======
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
     setTaskToDelete(task); 
     setJustification("");
     setJustificationError("");
@@ -160,26 +136,15 @@ const Tasks = () => {
   const confirmDeleteTask = async () => {
     if (!taskToDelete) return;
     
-    // ✅ Si es Manager, validar justificación
-<<<<<<< HEAD
     if (isManager && !justification.trim()) {
-=======
-    if ((userRole === 'Manager' || userRole === 'manager') && !justification.trim()) {
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
       setJustificationError("Debes proporcionar una justificación para eliminar esta tarea");
       return;
     }
     
     setIsDeleting(true);
     
-<<<<<<< HEAD
     if (justification) {
       console.log('=== ELIMINACIÓN DE TAREA ===');
-=======
-    // Guardar justificación en consola (puedes enviarla a una tabla de auditoría)
-    if (justification) {
-      console.log('=== ELIMINACIÓN DE TAREA POR MANAGER ===');
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
       console.log('Tarea:', taskToDelete.title || taskToDelete.description);
       console.log('Justificación:', justification);
       console.log('Eliminado por:', user?.email, 'Rol:', userRole);
@@ -221,7 +186,6 @@ const Tasks = () => {
       return;
     }
     const original = tasksData?.find(t => String(t.id) === task.id);
-<<<<<<< HEAD
     if (original) { 
       setTaskToEdit(original); 
       setEditModalOpen(true); 
@@ -229,10 +193,6 @@ const Tasks = () => {
       setTaskToEdit(task); 
       setEditModalOpen(true); 
     }
-=======
-    if (original) { setTaskToEdit(original); setEditModalOpen(true); } 
-    else { setTaskToEdit(task); setEditModalOpen(true); }
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
   };
 
   const tasks: Task[] = (tasksData || []).map(t => {
@@ -265,13 +225,7 @@ const Tasks = () => {
     };
   });
 
-<<<<<<< HEAD
-  // ✅ Filtrar tareas según rol:
-  // - Admin: ve TODAS las tareas (solo lectura)
-  // - Manager: ve TODAS las tareas
-  // - Técnico: ve SOLO sus tareas
   const filteredTasks = tasks.filter(t => {
-    // Admin o Manager: ven todas las tareas
     if (isAdmin || isManager) {
       const matchesSearch = !searchQuery || 
         t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -284,7 +238,6 @@ const Tasks = () => {
       return matchesSearch && matchesProject && matchesStatus;
     }
     
-    // Técnico: solo sus tareas
     if (isTechnician) {
       if (t.technician_id !== user?.id) return false;
       
@@ -302,72 +255,18 @@ const Tasks = () => {
     return false;
   });
 
-  // ✅ Verificar si el usuario puede eliminar esta tarea específica
   const canDeleteSpecificTask = (task: any) => {
-    // Admin: nunca puede eliminar
     if (isAdmin) return false;
-    // Manager: puede eliminar TODAS las tareas
     if (isManager) return true;
-    // Técnico: solo puede eliminar sus propias tareas
     if (isTechnician) return task.technician_id === user?.id;
     return false;
   };
 
-  // ✅ Verificar si el usuario puede editar esta tarea específica
   const canEditSpecificTask = (task: any) => {
-    // Admin: nunca puede editar
     if (isAdmin) return false;
-    // Manager: puede editar TODAS las tareas
     if (isManager) return true;
-    // Técnico: solo puede editar sus propias tareas
     if (isTechnician) return task.technician_id === user?.id;
     return false;
-=======
-  // ✅ Filtrar tareas según rol y permisos
-  const filteredTasks = tasks.filter(t => {
-  // 🔒 Si es técnico, solo ver sus propias tareas
-  if (profile?.role === 'Technician' || profile?.role === 'technician') {
-    if (t.technician_id !== user?.id) {
-      return false;
-    }
-  }
-  
-  const matchesSearch = !searchQuery || 
-    t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.serviceType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.project?.toLowerCase().includes(searchQuery.toLowerCase());
-  const matchesProject = projectFilter === "all" || (t as any).project_id === projectFilter;
-  const matchesStatus = statusFilter === "all" || 
-    (statusFilter === "completed" && t.completed) ||
-    (statusFilter === "pending" && !t.completed);
-  return matchesSearch && matchesProject && matchesStatus;
-});
-
-  // ✅ Verificar si el usuario puede eliminar esta tarea
-  const canDeleteTask = (task: any) => {
-    // Admin siempre puede eliminar
-    if (userRole === 'Admin' || userRole === 'admin') {
-      return true;
-    }
-    
-    // Técnico: solo puede eliminar sus propias tareas (las que él creó)
-    if (userRole === 'technician' || userRole === 'Technician') {
-      return task.created_by === user?.id;
-    }
-    
-    // Manager: solo puede eliminar tareas de proyectos donde es líder
-    if (userRole === 'Manager' || userRole === 'manager') {
-      const isManagerProject = managerProjects.some((p: any) => p.id === task.project_id);
-      return isManagerProject;
-    }
-    
-    return false;
-  };
-
-  // ✅ Verificar si necesita justificación (Manager)
-  const needsJustification = () => {
-    return (userRole === 'Manager' || userRole === 'manager');
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
   };
 
   const totalHours = filteredTasks.reduce((acc, t) => acc + t.hours, 0);
@@ -378,11 +277,6 @@ const Tasks = () => {
   const FILA_FIN = 44;
   const TAREAS_POR_PAGINA = FILA_FIN - FILA_INICIO + 1;
 
-<<<<<<< HEAD
-  // ✅ Exportación SOLO para Manager
-=======
-  // ✅ Exportación SOLO por proyecto (sin exportación individual)
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
   const exportExcel = async (
     tasksToExport: Task[],
     projectName?: string,
@@ -494,14 +388,10 @@ const Tasks = () => {
 
   const exportarPorLotes = async (tasksToExport: Task[], projectName?: string) => {
     const totalPaginas = Math.ceil(tasksToExport.length / TAREAS_POR_PAGINA);
-<<<<<<< HEAD
     if (totalPaginas === 0) { 
       toast.error('No hay tareas para exportar'); 
       return; 
     }
-=======
-    if (totalPaginas === 0) { toast.error('No hay tareas para exportar'); return; }
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
 
     let nombreBase = '';
     if (projectName) {
@@ -510,14 +400,10 @@ const Tasks = () => {
       nombreBase = `TAREAS_TODAS_${format(new Date(), 'yyyyMMdd')}`;
     }
 
-<<<<<<< HEAD
     if (totalPaginas === 1) { 
       await exportExcel(tasksToExport, projectName, 1, 1); 
       return; 
     }
-=======
-    if (totalPaginas === 1) { await exportExcel(tasksToExport, projectName, 1, 1); return; }
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
 
     toast.info(`Generando ZIP con ${totalPaginas} archivos...`);
     const JSZip = (await import('jszip')).default;
@@ -533,20 +419,15 @@ const Tasks = () => {
 
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(zipBlob);
-<<<<<<< HEAD
     const a = document.createElement('a'); 
     a.href = url; 
     a.download = `${nombreBase}.zip`; 
     a.click();
-=======
-    const a = document.createElement('a'); a.href = url; a.download = `${nombreBase}.zip`; a.click();
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
     URL.revokeObjectURL(url);
     toast.success(`ZIP descargado con ${totalPaginas} archivos`);
   };
 
   const handleExportByProjectExcel = (projectId: string, projectName: string) => {
-<<<<<<< HEAD
     if (!canExport) {
       toast.error("No tienes permisos para exportar tareas");
       return;
@@ -556,10 +437,6 @@ const Tasks = () => {
       toast.error(`No hay tareas de "${projectName}"`); 
       return; 
     }
-=======
-    const projectTasks = tasks.filter((t: any) => t.project_id === projectId);
-    if (projectTasks.length === 0) { toast.error(`No hay tareas de "${projectName}"`); return; }
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
     exportarPorLotes(projectTasks, projectName);
   };
 
@@ -571,8 +448,6 @@ const Tasks = () => {
           <p className="text-muted-foreground">Registra y gestiona tus horas de trabajo</p>
         </div>
         <div className="flex gap-2">
-<<<<<<< HEAD
-          {/* ✅ Exportar: solo visible para Manager */}
           {canExport && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -600,7 +475,6 @@ const Tasks = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          {/* ✅ Nueva Tarea: visible para Manager y Técnico */}
           {canCreateTask && (
             <Button className="gap-2 shadow-glow" onClick={() => setCreateTaskModalOpen(true)}>
               <Plus className="h-4 w-4" />Nueva Tarea
@@ -609,7 +483,6 @@ const Tasks = () => {
         </div>
       </div>
 
-      {/* Tarjetas de resumen */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="rounded-xl border bg-card p-4">
           <p className="text-sm text-muted-foreground">Total Tareas</p>
@@ -629,7 +502,6 @@ const Tasks = () => {
         </div>
       </div>
 
-      {/* Filtros */}
       <div className="mb-6 flex gap-4">
         <div className="relative max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
@@ -656,40 +528,6 @@ const Tasks = () => {
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
-=======
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="outline" className="gap-2"><FileText className="h-4 w-4" />Exportar</Button></DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-card border-border w-56">
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="cursor-pointer gap-2"><FolderKanban className="h-4 w-4" /> Exportar por Proyecto</DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="bg-card border-border w-48">
-                  {projectsList?.map((p: any) => <DropdownMenuItem key={p.id} className="cursor-pointer gap-2 text-xs" onClick={() => handleExportByProjectExcel(p.id, p.name)}>{p.name}</DropdownMenuItem>)}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button className="gap-2 shadow-glow" onClick={() => setCreateTaskModalOpen(true)}>
-            <Plus className="h-4 w-4" />Nueva Tarea
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="rounded-xl border bg-card p-4"><p className="text-sm text-muted-foreground">Total Tareas</p><p className="text-2xl font-bold">{filteredTasks.length}</p></div>
-        <div className="rounded-xl border bg-card p-4"><p className="text-sm text-muted-foreground">Horas Registradas</p><p className="text-2xl font-bold text-primary">{totalHours.toFixed(1)}h</p></div>
-        <div className="rounded-xl border bg-card p-4"><p className="text-sm text-muted-foreground">Completadas</p><p className="text-2xl font-bold text-green-500">{completedTasksCount}</p></div>
-        <div className="rounded-xl border bg-card p-4"><p className="text-sm text-muted-foreground">Pendientes</p><p className="text-2xl font-bold text-amber-500">{pendingTasksCount}</p></div>
-      </div>
-
-      <div className="mb-6 flex gap-4">
-        <div className="relative max-w-md flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" /><Input placeholder="Buscar tareas..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10 bg-muted/50" /></div>
-        <Select value={projectFilter} onValueChange={setProjectFilter}>
-          <SelectTrigger className="w-[180px] bg-muted/50"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Proyecto" /></SelectTrigger>
-          <SelectContent>{[{id:'all',name:'Todos los proyectos'},...(projectsList||[])].map(p=><SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[150px] bg-muted/50"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Estado" /></SelectTrigger>
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
           <SelectContent>
             <SelectItem value="all">Todos los estados</SelectItem>
             <SelectItem value="pending">Pendientes</SelectItem>
@@ -698,8 +536,6 @@ const Tasks = () => {
         </Select>
       </div>
 
-<<<<<<< HEAD
-      {/* Vista de tareas */}
       {isLoadingTasks ? (
         <div className="flex justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
@@ -714,7 +550,6 @@ const Tasks = () => {
         <TaskList 
           tasks={filteredTasks.map(task => ({
             ...task,
-            // ✅ Permisos específicos por tarea
             canEdit: canEditSpecificTask(task),
             canDelete: canDeleteSpecificTask(task),
           }))}
@@ -723,23 +558,6 @@ const Tasks = () => {
         />
       )}
 
-      {/* Modal de confirmación de eliminación */}
-=======
-      {isLoadingTasks ? (
-        <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
-      ) : viewMode === "calendar" ? (
-        <TaskCalendar tasks={filteredTasks} view={calendarView} onTaskClick={handleEditTask} />
-      ) : (
-        <TaskList 
-  tasks={filteredTasks} 
-  onEditTask={handleEditTask} 
-  onDeleteTask={handleDeleteTask} 
-/>
-
-      )}
-
-      {/* Modal de confirmación de eliminación con justificación para Manager */}
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="sm:max-w-md bg-card border-border p-0 overflow-hidden">
           <div className="p-6 bg-gradient-to-r from-red-500/10 to-red-500/5 border-b border-border">
@@ -756,13 +574,7 @@ const Tasks = () => {
           <div className="p-6 space-y-4">
             <p className="text-sm text-foreground">¿Eliminar esta tarea permanentemente?</p>
             
-<<<<<<< HEAD
-            {/* Justificación solo para Manager */}
             {isManager && (
-=======
-            {/* Justificación para Manager */}
-            {needsJustification() && (
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Justificación *</label>
                 <textarea
@@ -787,7 +599,6 @@ const Tasks = () => {
             </div>
           </div>
           <DialogFooter className="p-4 pt-0 gap-2">
-<<<<<<< HEAD
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="flex-1">
               Cancelar
             </Button>
@@ -799,18 +610,11 @@ const Tasks = () => {
             >
               {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Trash2 className="h-4 w-4 mr-1.5" />}
               Eliminar
-=======
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="flex-1">Cancelar</Button>
-            <Button variant="destructive" onClick={confirmDeleteTask} disabled={isDeleting} className="flex-1 font-medium">
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Trash2 className="h-4 w-4 mr-1.5" />}Eliminar
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-<<<<<<< HEAD
-      {/* Modal de edición */}
       {canEditTask && (
         <TaskEditModal 
           task={taskToEdit} 
@@ -820,7 +624,6 @@ const Tasks = () => {
         />
       )}
       
-      {/* Modal de creación */}
       {canCreateTask && (
         <CreateTaskModal
           open={createTaskModalOpen}
@@ -830,17 +633,6 @@ const Tasks = () => {
           onSuccess={handleCreateTask}
         />
       )}
-=======
-      <TaskEditModal task={taskToEdit} open={editModalOpen} onOpenChange={setEditModalOpen} onSuccess={handleUpdateTask} />
-      
-      <CreateTaskModal
-        open={createTaskModalOpen}
-        onOpenChange={(open) => setCreateTaskModalOpen(open)}
-        projects={projectsList || []}
-        services={servicesList}
-        onSuccess={handleCreateTask}
-      />
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
     </DashboardLayout>
   );
 };

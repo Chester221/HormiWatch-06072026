@@ -14,7 +14,6 @@ export type CreateTaskData = InsertTables<'tasks'>
 export const useTasks = (projectId?: string | 'all', technicianId?: string) => {
   const fetchTasks = async (): Promise<Task[]> => {
     try {
-      // ✅ Cambiar a 'tasks' en lugar de 'tasks_with_details'
       let query = supabase
         .from('tasks')
         .select(`
@@ -29,11 +28,6 @@ export const useTasks = (projectId?: string | 'all', technicianId?: string) => {
         query = query.eq('project_id', projectId)
       }
 
-<<<<<<< HEAD
-      // ✅ Filtrar por técnico si se especifica
-=======
-      // ✅ Filtrar por técnico si se especifica (para Viewer)
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
       if (technicianId) {
         query = query.eq('technician_id', technicianId)
       }
@@ -45,7 +39,6 @@ export const useTasks = (projectId?: string | 'all', technicianId?: string) => {
         return []
       }
 
-      // Transformar los datos al formato esperado
       const transformedData = (data || []).map((item: any) => ({
         ...item,
         projects: item.projects || null,
@@ -118,10 +111,6 @@ export const useUpdateTask = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number | string; data: Partial<CreateTaskData> }) => {
-<<<<<<< HEAD
-=======
-      // ✅ Hacer update + select en una sola operación
->>>>>>> 11069f104d1610e5c5ea848911ab81005acbe8e2
       const { data: updated, error } = await supabase
         .from('tasks')
         .update(data)
