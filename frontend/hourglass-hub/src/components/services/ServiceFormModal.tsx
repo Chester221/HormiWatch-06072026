@@ -60,13 +60,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  useServiceCategories,
-  useCreateService,
-  useUpdateService,
-  useCreateServiceCategory,
-  type Service,
-} from "@/hooks/useServices";
+// import {
+//   useServiceCategories,
+//   useCreateService,
+//   useUpdateService,
+//   useCreateServiceCategory,  // <-- Comenta esta línea
+//   type Service,
+// } from "@/hooks/useServices";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -145,7 +145,7 @@ export function ServiceFormModal({
   
   const createService = useCreateService();
   const updateService = useUpdateService();
-  const createCategory = useCreateServiceCategory();
+  // const createCategory = useCreateServiceCategory(); // <-- Comenta esto
   const queryClient = useQueryClient();
 
   const isSubmitting = createService.isPending || updateService.isPending;

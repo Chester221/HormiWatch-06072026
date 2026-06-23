@@ -103,7 +103,6 @@ export const useUpdateService = () => {
 };
 
 // Eliminar servicio
-// Eliminar servicio
 export const useDeleteService = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -128,6 +127,54 @@ export const useDeleteService = () => {
     },
     onError: (error: Error) => {
       toast.error(error.message);
+    },
+  });
+};
+
+// Crear categoría de servicio
+export const useCreateServiceCategory = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (newCategory: { name: string; description?: string | null }) => {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .insert([{ 
+          name: newCategory.name.trim(), 
+          description: newCategory.description || null 
+        }])
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service_categories'] });
+      toast.success('Categoría creada exitosamente');
+    },
+    onError: (error: Error) => {
+      toast.error('Error al crear la categoría: ' + error.message);
+    },
+  });
+};
+
+// Eliminar categoría de servicio
+export const useDeleteServiceCategory = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('service_categories')
+        .delete()
+        .eq('id', id);
+      if (error) throw new Error(error.message);
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service_categories'] });
+      toast.success('Categoría eliminada exitosamente');
+    },
+    onError: (error: Error) => {
+      toast.error('Error al eliminar la categoría: ' + error.message);
     },
   });
 };
