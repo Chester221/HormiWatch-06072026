@@ -1,45 +1,129 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
-  Loader2, Wrench, DollarSign, FolderKanban, Plus, Trash2, Tag,
-  Code, BarChart3, Palette, Briefcase, Server, Landmark, ClipboardCheck, Search
+  Loader2,
+  Wrench,
+  DollarSign,
+  FolderKanban,
+  Plus,
+  Tag,
+  Code,
+  BarChart3,
+  Palette,
+  Briefcase,
+  Server,
+  Landmark,
+  ClipboardCheck,
+  Search,
+  Pencil,
+  Save,
+  X,
+  Eye,
+  Clock,
+  Calendar
 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useServiceCategories, useCreateService, useUpdateService, type Service } from "@/hooks/useServices";
-import { supabase } from "@/lib/supabase/client";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  useServiceCategories,
+  useCreateService,
+  useUpdateService,
+  useCreateServiceCategory,
+  type Service,
+} from "@/hooks/useServices";
 import { useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+
+// ============================================
+// CONSTANTES Y MAPEOS
+// ============================================
+
+const HORMI_BLUE = '#0DA2E7';
 
 const categoryIcons: Record<string, any> = {
-  "Consulta": ClipboardCheck, "Evaluación": Search, "Mantenimiento": Wrench,
-  "Desarrollo": Code, "Integración Bancaria": Landmark, "Análisis de Datos": BarChart3,
-  "Infraestructura": Server, "Diseño": Palette, "Consultoría": Briefcase,
+  "Desarrollo": Code,
+  "Evaluación": Search,
+  "Mantenimiento": Wrench,
+  "Integración Bancaria": Landmark,
+  "Análisis de Datos": BarChart3,
+  "Infraestructura": Server,
+  "Diseño": Palette,
+  "Consultoría": Briefcase,
+  "Consulta": ClipboardCheck,
 };
 
+const categoryColors: Record<string, string> = {
+  "Desarrollo": "bg-blue-500/10 text-blue-600 border-blue-200",
+  "Evaluación": "bg-purple-500/10 text-purple-600 border-purple-200",
+  "Mantenimiento": "bg-orange-500/10 text-orange-600 border-orange-200",
+  "Integración Bancaria": "bg-emerald-500/10 text-emerald-600 border-emerald-200",
+  "Análisis de Datos": "bg-cyan-500/10 text-cyan-600 border-cyan-200",
+  "Infraestructura": "bg-indigo-500/10 text-indigo-600 border-indigo-200",
+  "Diseño": "bg-pink-500/10 text-pink-600 border-pink-200",
+  "Consultoría": "bg-amber-500/10 text-amber-600 border-amber-200",
+  "Consulta": "bg-teal-500/10 text-teal-600 border-teal-200",
+};
+
+// ============================================
+// ESQUEMA DE VALIDACIÓN
+// ============================================
+
 const serviceSchema = z.object({
-  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-  category_id: z.string().min(1, "Por favor selecciona una categoría"),
-  description: z.string().optional(),
-  default_hourly_rate: z.number().min(0, "La tarifa no puede ser negativa"),
+  name: z.string()
+    .min(2, "El nombre debe tener al menos 2 caracteres")
+    .max(100, "El nombre no puede exceder 100 caracteres"),
+  category_id: z.string().min(1, "Selecciona una categoría"),
+  description: z.string()
+    .max(500, "La descripción no puede exceder 500 caracteres")
+    .optional()
+    .nullable(),
+  default_hourly_rate: z.number()
+    .min(0, "La tarifa no puede ser negativa")
+    .max(9999, "La tarifa no puede exceder $9,999"),
+  is_active: z.boolean().default(true),
 });
 
 type ServiceFormData = z.infer<typeof serviceSchema>;
+
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
 
 interface ServiceFormModalProps {
   open: boolean;
@@ -47,142 +131,451 @@ interface ServiceFormModalProps {
   service?: Service | null;
 }
 
-export function ServiceFormModal({ open, onOpenChange, service }: ServiceFormModalProps) {
+export function ServiceFormModal({
+  open,
+  onOpenChange,
+  service,
+}: ServiceFormModalProps) {
   const isEditing = !!service;
-  const { data: categories = [], isLoading: loadingCategories, refetch: refetchCategories } = useServiceCategories();
+  const {
+    data: categories = [],
+    isLoading: loadingCategories,
+    refetch: refetchCategories,
+  } = useServiceCategories();
+  
   const createService = useCreateService();
   const updateService = useUpdateService();
-  const isSubmitting = createService.isPending || updateService.isPending;
+  const createCategory = useCreateServiceCategory();
   const queryClient = useQueryClient();
 
-  const [categoryDialog, setCategoryDialog] = useState<{ open: boolean; mode: 'add' | 'delete' }>({ open: false, mode: 'add' });
+  const isSubmitting = createService.isPending || updateService.isPending;
+
+  const [categoryDialog, setCategoryDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryDesc, setNewCategoryDesc] = useState("");
+  const [isActive, setIsActive] = useState(true);
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceSchema),
-    defaultValues: { name: "", category_id: "", description: "", default_hourly_rate: 0 },
+    defaultValues: {
+      name: "",
+      category_id: "",
+      description: "",
+      default_hourly_rate: 0,
+      is_active: true,
+    },
   });
 
   useEffect(() => {
     if (open) {
+      const active = service?.is_active !== undefined ? service.is_active : true;
+      setIsActive(active);
       form.reset({
         name: service?.name || "",
         category_id: service?.category_id || "",
         description: service?.description || "",
         default_hourly_rate: service?.default_hourly_rate || 0,
+        is_active: active,
       });
     }
   }, [open, service, form]);
+
+  useEffect(() => {
+    if (!categoryDialog) {
+      setNewCategoryName("");
+      setNewCategoryDesc("");
+    }
+  }, [categoryDialog]);
+
+  // ============================================
+  // HANDLERS
+  // ============================================
 
   const handleSubmit = async (data: ServiceFormData) => {
     try {
       if (isEditing && service) {
         await updateService.mutateAsync({
           id: service.id,
-          data: { name: data.name, category_id: data.category_id, description: data.description || null, default_hourly_rate: data.default_hourly_rate },
+          name: data.name,
+          category_id: data.category_id,
+          description: data.description || null,
+          default_hourly_rate: data.default_hourly_rate,
+          is_active: data.is_active,
         });
-        toast.success("Servicio actualizado");
+        toast.success("Servicio actualizado exitosamente");
       } else {
         await createService.mutateAsync({
-          name: data.name, category_id: data.category_id, description: data.description || undefined, default_hourly_rate: data.default_hourly_rate,
+          name: data.name,
+          category_id: data.category_id,
+          description: data.description || undefined,
+          default_hourly_rate: data.default_hourly_rate,
+          is_active: data.is_active,
         });
-        toast.success("Servicio creado");
+        toast.success("Servicio creado exitosamente");
       }
       onOpenChange(false);
-    } catch (error: any) { toast.error(`Error: ${error.message}`); }
+    } catch (error: any) {
+      toast.error(`Error: ${error.message}`);
+    }
   };
 
   const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) { toast.error("El nombre es obligatorio"); return; }
+    const trimmedName = newCategoryName.trim();
+    if (!trimmedName) {
+      toast.error("El nombre de la categoría es obligatorio");
+      return;
+    }
+
+    if (categories.some(c => c.name.toLowerCase() === trimmedName.toLowerCase())) {
+      toast.error("Ya existe una categoría con ese nombre");
+      return;
+    }
+
     try {
-      await supabase.from('service_categories').insert({ name: newCategoryName, description: newCategoryDesc });
-      toast.success("Categoría creada");
-      setCategoryDialog({ open: false, mode: 'add' });
-      setNewCategoryName(""); setNewCategoryDesc("");
-      refetchCategories();
-      queryClient.invalidateQueries({ queryKey: ['service_categories'] });
-    } catch (e: any) { toast.error(`Error: ${e.message}`); }
+      await createCategory.mutateAsync({
+        name: trimmedName,
+        description: newCategoryDesc.trim() || null,
+      });
+      
+      toast.success("Categoría creada exitosamente");
+      setCategoryDialog(false);
+      setNewCategoryName("");
+      setNewCategoryDesc("");
+      
+      await refetchCategories();
+      await queryClient.invalidateQueries({ queryKey: ['service-categories'] });
+      
+      const newCategory = categories.find(c => c.name.toLowerCase() === trimmedName.toLowerCase());
+      if (newCategory) {
+        form.setValue('category_id', newCategory.id);
+      }
+    } catch (error: any) {
+      toast.error(`Error al crear categoría: ${error.message}`);
+    }
   };
 
-  const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
-    try {
-      await supabase.from('service_categories').delete().eq('id', categoryId);
-      toast.success(`Categoría "${categoryName}" eliminada`);
-      refetchCategories();
-      queryClient.invalidateQueries({ queryKey: ['service_categories'] });
-    } catch (e: any) { toast.error(`Error: ${e.message}`); }
+  const getCategoryIcon = (categoryName: string) => {
+    return categoryIcons[categoryName] || Tag;
   };
+
+  const getCategoryColor = (categoryName: string) => {
+    return categoryColors[categoryName] || "bg-muted/30 text-muted-foreground border-muted";
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
 
   const watchedName = form.watch("name");
   const watchedRate = form.watch("default_hourly_rate");
+  const watchedCategory = form.watch("category_id");
+  const selectedCategory = categories.find(c => c.id === watchedCategory);
+  const watchedActive = form.watch("is_active");
 
   return (
     <>
+      {/* MODAL PRINCIPAL MEJORADO */}
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px] bg-card border-border p-0 overflow-hidden">
-          <div className="p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/20 ring-4 ring-primary/10">
-                <Wrench className="h-6 w-6 text-primary" />
+        <DialogContent className="sm:max-w-[520px] bg-card border-border p-0 overflow-hidden shadow-2xl">
+          {/* Header con gradiente y badge de estado */}
+          <div className="p-5 bg-gradient-to-r from-[#0DA2E7]/10 via-[#0DA2E7]/5 to-transparent border-b border-border/50">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0DA2E7]/20 ring-4 ring-[#0DA2E7]/10">
+                  {isEditing ? (
+                    <Pencil className="h-5 w-5" style={{ color: HORMI_BLUE }} />
+                  ) : (
+                    <Wrench className="h-5 w-5" style={{ color: HORMI_BLUE }} />
+                  )}
+                </div>
+                <div>
+                  <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+                    {isEditing ? "Editar Servicio" : "Nuevo Servicio"}
+                    {isEditing && service?.is_active !== undefined && (
+                      <Badge 
+                        variant="outline" 
+                        className={`text-[9px] px-2 py-0 ${
+                          service.is_active 
+                            ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200' 
+                            : 'bg-red-500/10 text-red-600 border-red-200'
+                        }`}
+                      >
+                        {service.is_active ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    )}
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {isEditing 
+                      ? `Modificando: ${service?.name}` 
+                      : "Completa los datos del nuevo servicio"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <DialogTitle className="text-xl font-bold">{isEditing ? "Editar Servicio" : "Nuevo Servicio"}</DialogTitle>
-                <p className="text-sm text-muted-foreground mt-0.5">{isEditing ? "Modifica los datos del servicio" : "Agrega un nuevo servicio al catálogo"}</p>
-              </div>
+              {isEditing && service?.created_at && (
+                <div className="text-right">
+                  <p className="text-[9px] text-muted-foreground flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {new Date(service.created_at).toLocaleDateString('es-ES', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
-          <div className="p-6 pt-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
-                <FormField control={form.control} name="name" render={({ field }) => (
-                  <FormItem><FormLabel className="text-sm font-medium">Nombre del Servicio *</FormLabel><FormControl><Input placeholder="Ej: Desarrollo de API Bancaria" className="h-10 text-sm bg-background border-border" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField control={form.control} name="category_id" render={({ field }) => (
+          {/* Formulario */}
+          <div className="p-5 max-h-[60vh] overflow-y-auto">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                {/* Nombre del Servicio */}
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-medium">Categoría *</FormLabel>
-                      <div className="flex gap-2">
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger className="h-10 text-sm bg-background border-border flex-1"><FolderKanban className="h-4 w-4 mr-2 text-muted-foreground" /><SelectValue placeholder={loadingCategories ? "Cargando..." : "Seleccionar"} /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            {categories.map((cat) => {
-                              const Icon = categoryIcons[cat.name] || Tag;
-                              return <SelectItem key={cat.id} value={cat.id}><span className="flex items-center gap-2"><Icon className="h-4 w-4" />{cat.name}</span></SelectItem>;
-                            })}
-                          </SelectContent>
-                        </Select>
-                        <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => { setCategoryDialog({ open: true, mode: 'add' }); setNewCategoryName(""); setNewCategoryDesc(""); }}><Plus className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent side="top"><p className="text-xs">Agregar categoría</p></TooltipContent></Tooltip></TooltipProvider>
-                        <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" className="h-10 w-10 shrink-0 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30" onClick={() => setCategoryDialog({ open: true, mode: 'delete' })}><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent side="top"><p className="text-xs">Eliminar categoría</p></TooltipContent></Tooltip></TooltipProvider>
-                      </div>
+                      <FormLabel className="text-xs font-medium flex items-center gap-1">
+                        Nombre del Servicio <span className="text-red-500">*</span>
+                        <span className="text-[9px] text-muted-foreground font-normal ml-auto">
+                          {field.value?.length || 0}/100
+                        </span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ej: Desarrollo de API Bancaria"
+                          className="h-9 text-sm bg-background border-border focus:ring-[#0DA2E7] focus:border-[#0DA2E7] transition-all"
+                          {...field}
+                          maxLength={100}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )} />
+                  )}
+                />
 
-                  <FormField control={form.control} name="default_hourly_rate" render={({ field }) => (
-                    <FormItem><FormLabel className="text-sm font-medium">Tarifa por Hora ($) *</FormLabel><FormControl><div className="relative"><DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="number" min="0" step="0.01" placeholder="0.00" className="pl-10 h-10 text-sm bg-background border-border" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} /></div></FormControl><FormMessage /></FormItem>
-                  )} />
+                {/* Categoría y Tarifa */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="category_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-medium">
+                          Categoría <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <div className="flex gap-1.5">
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            disabled={loadingCategories}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-9 text-sm bg-background border-border flex-1 transition-all focus:ring-[#0DA2E7] focus:border-[#0DA2E7]">
+                                <FolderKanban className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                                <SelectValue placeholder="Categoría" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categories.map((cat) => {
+                                const Icon = getCategoryIcon(cat.name);
+                                return (
+                                  <SelectItem key={cat.id} value={cat.id}>
+                                    <span className="flex items-center gap-2">
+                                      <Icon className="h-3.5 w-3.5" />
+                                      {cat.name}
+                                    </span>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                          
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 shrink-0 hover:border-[#0DA2E7] hover:text-[#0DA2E7] hover:bg-[#0DA2E7]/5 transition-all"
+                                  onClick={() => {
+                                    setCategoryDialog(true);
+                                    setNewCategoryName("");
+                                    setNewCategoryDesc("");
+                                  }}
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                <p className="text-xs">Agregar categoría</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="default_hourly_rate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-medium">
+                          Tarifa por Hora ($) <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              className="pl-8 h-9 text-sm bg-background border-border focus:ring-[#0DA2E7] focus:border-[#0DA2E7] transition-all"
+                              {...field}
+                              onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
-                <FormField control={form.control} name="description" render={({ field }) => (
-                  <FormItem><FormLabel className="text-sm font-medium">Descripción</FormLabel><FormControl><Textarea placeholder="Describe el servicio, alcance, entregables..." className="resize-none bg-background border-border text-sm" rows={3} {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
+                {/* Descripción */}
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-medium flex items-center gap-1">
+                        Descripción
+                        <span className="text-[9px] text-muted-foreground font-normal ml-auto">
+                          {field.value?.length || 0}/500
+                        </span>
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Describe el servicio, alcance, entregables..."
+                          className="resize-none bg-background border-border text-sm focus:ring-[#0DA2E7] focus:border-[#0DA2E7] transition-all"
+                          rows={3}
+                          {...field}
+                          value={field.value || ""}
+                          maxLength={500}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                {watchedName && (
-                  <div className="rounded-xl bg-muted/30 p-4 space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Vista previa</p>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">{categories.find(c => c.id === form.watch("category_id"))?.name || "Sin categoría"}</Badge>
-                      <span className="font-medium text-foreground">{watchedName}</span>
-                      {watchedRate > 0 && <span className="text-sm font-semibold text-emerald-500 flex items-center gap-1 ml-auto"><DollarSign className="h-3.5 w-3.5" />{watchedRate.toFixed(2)}/hr</span>}
-                    </div>
-                  </div>
+                {/* Estado Activo/Inactivo - Solo en edición */}
+                {isEditing && (
+                  <FormField
+                    control={form.control}
+                    name="is_active"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50">
+                        <div>
+                          <FormLabel className="text-xs font-medium">
+                            Estado del Servicio
+                          </FormLabel>
+                          <p className="text-[10px] text-muted-foreground">
+                            {field.value ? 'Visible y disponible para técnicos' : 'Oculto y no disponible'}
+                          </p>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="data-[state=checked]:bg-[#0DA2E7]"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                 )}
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
-                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancelar</Button>
-                  <Button type="submit" disabled={isSubmitting} className="gap-2 shadow-sm">{isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}{isEditing ? "Guardar Cambios" : "Crear Servicio"}</Button>
+                {/* Vista previa en tiempo real */}
+                {(watchedName || watchedCategory || watchedRate > 0) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-lg bg-gradient-to-r from-[#0DA2E7]/5 to-transparent p-3 border border-[#0DA2E7]/20"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                        Vista previa
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap mt-1.5">
+                      {selectedCategory && (
+                        <Badge 
+                          variant="outline" 
+                          className={`${getCategoryColor(selectedCategory.name)} border text-[10px] px-2 py-0`}
+                        >
+                          {selectedCategory.name}
+                        </Badge>
+                      )}
+                      {watchedName && (
+                        <span className="font-medium text-sm text-foreground">
+                          {watchedName}
+                        </span>
+                      )}
+                      {watchedRate > 0 && (
+                        <span className="text-sm font-semibold text-emerald-600 flex items-center gap-0.5 ml-auto">
+                          <DollarSign className="h-3 w-3" />
+                          {watchedRate.toFixed(2)}/hr
+                        </span>
+                      )}
+                      {isEditing && (
+                        <Badge 
+                          variant="outline" 
+                          className={`text-[9px] px-2 py-0 ${
+                            watchedActive 
+                              ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200' 
+                              : 'bg-red-500/10 text-red-600 border-red-200'
+                          }`}
+                        >
+                          {watchedActive ? 'Activo' : 'Inactivo'}
+                        </Badge>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Acciones */}
+                <div className="flex justify-end gap-2 pt-3 border-t border-border/50">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    disabled={isSubmitting}
+                    className="h-8 text-xs hover:bg-muted/50 transition-all"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="h-8 gap-1.5 text-xs text-white shadow-sm hover:shadow-md transition-all"
+                    style={{ backgroundColor: HORMI_BLUE }}
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Save className="h-3 w-3" />
+                    )}
+                    {isEditing ? "Guardar Cambios" : "Crear Servicio"}
+                  </Button>
                 </div>
               </form>
             </Form>
@@ -190,40 +583,75 @@ export function ServiceFormModal({ open, onOpenChange, service }: ServiceFormMod
         </DialogContent>
       </Dialog>
 
-      {/* Modal GESTIONAR CATEGORÍAS */}
-      <Dialog open={categoryDialog.open} onOpenChange={(o) => setCategoryDialog({ open: o, mode: 'add' })}>
-        <DialogContent className="sm:max-w-md bg-card border-border p-0 overflow-hidden">
-          <div className="p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/20 ring-4 ring-primary/10"><Tag className="h-6 w-6 text-primary" /></div>
+      {/* MODAL AGREGAR CATEGORÍA */}
+      <Dialog open={categoryDialog} onOpenChange={setCategoryDialog}>
+        <DialogContent className="sm:max-w-[400px] bg-card border-border p-0 overflow-hidden">
+          <div className="p-4 bg-gradient-to-br from-[#0DA2E7]/10 via-[#0DA2E7]/5 to-transparent border-b border-border/50">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0DA2E7]/20 ring-4 ring-[#0DA2E7]/10">
+                <Tag className="h-4 w-4" style={{ color: HORMI_BLUE }} />
+              </div>
               <div>
-                <DialogTitle className="text-xl font-bold">{categoryDialog.mode === 'add' ? 'Agregar Categoría' : 'Eliminar Categoría'}</DialogTitle>
-                <p className="text-sm text-muted-foreground mt-0.5">{categoryDialog.mode === 'add' ? 'Crea una nueva categoría' : 'Selecciona la categoría a eliminar'}</p>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  Agregar Categoría
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Crea una nueva categoría para servicios
+                </p>
               </div>
             </div>
           </div>
-          <div className="p-6 pt-4">
-            {categoryDialog.mode === 'add' ? (
-              <div className="space-y-3">
-                <div><Label className="text-xs">Nombre *</Label><Input placeholder="Nombre de la categoría" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} className="h-9 text-sm mt-1 bg-background" /></div>
-                <div><Label className="text-xs">Descripción (opcional)</Label><Input placeholder="Descripción breve" value={newCategoryDesc} onChange={e => setNewCategoryDesc(e.target.value)} className="h-9 text-sm mt-1 bg-background" /></div>
-                <Button onClick={handleAddCategory} size="sm" className="gap-1.5 w-full"><Plus className="h-4 w-4" /> Agregar Categoría</Button>
+
+          <div className="p-4">
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs font-medium">
+                  Nombre <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  placeholder="Ej: Mantenimiento Preventivo"
+                  value={newCategoryName}
+                  onChange={e => setNewCategoryName(e.target.value)}
+                  className="h-8 text-sm mt-1 bg-background border-border focus:ring-[#0DA2E7] focus:border-[#0DA2E7] transition-all"
+                  onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
+                />
               </div>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {categories.map((cat: any) => {
-                  const Icon = categoryIcons[cat.name] || Tag;
-                  return (
-                    <div key={cat.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/10 hover:bg-muted/20 transition-colors">
-                      <div className="flex items-center gap-2.5"><Icon className="h-4 w-4 text-muted-foreground" /><span className="text-sm font-medium">{cat.name}</span></div>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-500/10 hover:text-red-500" onClick={() => handleDeleteCategory(cat.id, cat.name)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                    </div>
-                  );
-                })}
+              <div>
+                <Label className="text-xs font-medium">Descripción (opcional)</Label>
+                <Input
+                  placeholder="Breve descripción de la categoría"
+                  value={newCategoryDesc}
+                  onChange={e => setNewCategoryDesc(e.target.value)}
+                  className="h-8 text-sm mt-1 bg-background border-border focus:ring-[#0DA2E7] focus:border-[#0DA2E7] transition-all"
+                  onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
+                />
               </div>
-            )}
+              <Button
+                onClick={handleAddCategory}
+                size="sm"
+                className="gap-1.5 w-full h-8 text-xs text-white hover:shadow-md transition-all"
+                style={{ backgroundColor: HORMI_BLUE }}
+                disabled={createCategory.isPending}
+              >
+                {createCategory.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )}
+                Agregar Categoría
+              </Button>
+            </div>
           </div>
-          <DialogFooter className="p-4 pt-0"><Button variant="outline" onClick={() => setCategoryDialog({ open: false, mode: 'add' })} className="w-full">Cerrar</Button></DialogFooter>
+
+          <DialogFooter className="p-3 pt-0 border-t border-border/50">
+            <Button
+              variant="outline"
+              onClick={() => setCategoryDialog(false)}
+              className="w-full h-8 text-xs hover:bg-muted/50 transition-all"
+            >
+              Cerrar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

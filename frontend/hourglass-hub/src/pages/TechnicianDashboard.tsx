@@ -300,12 +300,12 @@ const TechnicianDashboard = () => {
       )}
 
       <CreateTaskModal
-        open={createTaskModalOpen}
-        onOpenChange={(open) => setCreateTaskModalOpen(open)}
-        projects={projects}
-        services={services}
-        onSuccess={() => { refetchTasks(); setCreateTaskModalOpen(false); }}
-      />
+  open={createTaskModalOpen}
+  onOpenChange={(open) => setCreateTaskModalOpen(open)}
+  projects={allProjects}
+  services={services}
+  onSuccess={(data) => handleCreateTask(data)}
+/>
       <CreateProjectModal
         open={createProjectModalOpen}
         onOpenChange={(open) => setCreateProjectModalOpen(open)}

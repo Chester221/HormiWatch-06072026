@@ -9,15 +9,14 @@ import {
   Settings,
   Clock,
   User,
-  Calendar,
-  FileBarChart,
   Shield,
-  BarChart3
+  BarChart3,
+  Building2,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Definición de navegación con roles
 interface NavItem {
   name: string;
   href: string;
@@ -26,42 +25,29 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
-  // ✅ Dashboard Técnico (solo Técnicos)
-  { name: "Mi Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["Technician"] },
+  // 1. Dashboard (según rol)
+  { name: "Dashboard", href: "/gerencial", icon: BarChart3, roles: ["Manager"] },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["Technician"] },
+  { name: "Dashboard", href: "/control-usuarios", icon: Shield, roles: ["Admin"] },
   
-  // ✅ Dashboard Gerencial (solo Manager)
-  { name: "Dashboard Gerencial", href: "/gerencial", icon: BarChart3, roles: ["Manager"] },
+  // 2. Clientes (Manager y Admin)
+  { name: "Clientes", href: "/clients", icon: Building2, roles: ["Manager", "Admin"] },
   
-  // ✅ Control de Usuarios (solo Admin)
-  { name: "Control de Usuarios", href: "/control-usuarios", icon: Shield, roles: ["Admin"] },
-  
-  // ✅ Proyectos (Admin y Manager y Técnico - cada uno con diferentes permisos)
+  // 3. Proyectos (Manager, Admin y Technician)
   { name: "Proyectos", href: "/projects", icon: FolderKanban, roles: ["Manager", "Admin", "Technician"] },
   
-  // ✅ Mis Tareas (todos)
-  { name: "Mis Tareas", href: "/tasks", icon: CheckSquare, roles: ["Manager", "Admin", "Technician"] },
+  // 4. Tareas (todos)
+  { name: "Tareas", href: "/tasks", icon: CheckSquare, roles: ["Manager", "Admin", "Technician"] },
   
-  // ✅ Clientes (Manager y Admin)
-  { name: "Clientes", href: "/clients", icon: Briefcase, roles: ["Manager", "Admin"] },
-  
-  // ✅ Equipo (Manager y Admin)
+  // Equipo (Manager y Admin)
   { name: "Equipo", href: "/team", icon: Users, roles: ["Manager", "Admin"] },
   
-  // ✅ Servicios (Manager, Admin y Técnico)
-  { name: "Servicios", href: "/services", icon: UserCircle, roles: ["Manager", "Admin", "Technician"] },
-  
-  // ✅ Feriados (Manager y Admin)
-  { name: "Feriados", href: "/holidays", icon: Calendar, roles: ["Manager", "Admin"] },
-  
-  // ✅ Reportes (Manager y Admin)
-  { name: "Reportes", href: "/reports", icon: FileBarChart, roles: ["Manager", "Admin"] },
+  // Servicios (Manager, Admin y Technician)
+  { name: "Servicios", href: "/services", icon: Wrench, roles: ["Manager", "Admin", "Technician"] },
 ];
 
 const bottomNavigation: NavItem[] = [
-  // ✅ Mi Perfil (todos)
   { name: "Mi Perfil", href: "/profile", icon: User, roles: ["Manager", "Admin", "Technician"] },
-  
-  // ✅ Configuración (todos)
   { name: "Configuración", href: "/settings", icon: Settings, roles: ["Manager", "Admin", "Technician"] },
 ];
 
@@ -69,7 +55,6 @@ export function Sidebar() {
   const { profile } = useAuth();
   const userRole = profile?.role || "Technician";
 
-  // Filtrar navegación según rol
   const filteredNavigation = navigation.filter(item => {
     if (!item.roles) return true;
     return item.roles.includes(userRole);
@@ -80,23 +65,42 @@ export function Sidebar() {
     return item.roles.includes(userRole);
   });
 
-  // Determinar el rol display
   const getRoleDisplay = () => {
     switch (userRole) {
-      case "Manager": return "🎯 Manager";
-      case "Admin": return "🛡️ Administrador";
-      case "Technician": return "👨‍💻 Técnico";
-      default: return "👤 Usuario";
+      case "Manager": return "Manager";
+      case "Admin": return "Administrador";
+      case "Technician": return "Técnico";
+      default: return "Usuario";
     }
   };
+
+  const getRoleBadgeColor = () => {
+    switch (userRole) {
+      case "Manager": return "bg-blue-500/10 text-blue-600 border-blue-500/20";
+      case "Admin": return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+      case "Technician": return "bg-sky-500/10 text-sky-600 border-sky-500/20";
+      default: return "bg-muted text-muted-foreground border-border";
+    }
+  };
+
+  const getRoleIcon = () => {
+    switch (userRole) {
+      case "Manager": return Briefcase;
+      case "Admin": return Settings;
+      case "Technician": return Wrench;
+      default: return User;
+    }
+  };
+
+  const RoleIcon = getRoleIcon();
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar">
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-            <Clock className="h-5 w-5 text-primary-foreground" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0DA2E7]">
+            <Clock className="h-5 w-5 text-white" />
           </div>
           <span className="text-xl font-bold text-sidebar-accent-foreground">
             Hormiwatch
@@ -106,13 +110,10 @@ export function Sidebar() {
         {/* Indicador de Rol */}
         <div className="px-3 py-3">
           <div className={cn(
-            "rounded-lg px-3 py-2 text-xs font-medium",
-            userRole === "Manager"
-              ? "bg-primary/10 text-primary border border-primary/20"
-              : userRole === "Admin"
-              ? "bg-purple-500/10 text-purple-500 border border-purple-500/20"
-              : "bg-muted text-muted-foreground"
+            "rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-2 border",
+            getRoleBadgeColor()
           )}>
+            <RoleIcon className="h-3.5 w-3.5" />
             {getRoleDisplay()}
           </div>
         </div>
@@ -124,14 +125,14 @@ export function Sidebar() {
           </p>
           {filteredNavigation.map((item, index) => (
             <NavLink
-              key={item.name}
+              key={item.name + item.href}
               to={item.href}
               className={cn(
                 "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-all duration-200",
                 "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 "opacity-0 animate-slide-in-left"
               )}
-              activeClassName="bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground shadow-glow"
+              activeClassName="bg-[#0DA2E7] text-white hover:bg-[#0DA2E7] hover:text-white shadow-md"
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <item.icon className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
@@ -154,7 +155,7 @@ export function Sidebar() {
                 "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 "opacity-0 animate-slide-in-left"
               )}
-              activeClassName="bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground shadow-glow"
+              activeClassName="bg-[#0DA2E7] text-white hover:bg-[#0DA2E7] hover:text-white shadow-md"
               style={{ animationDelay: `${(filteredNavigation.length + index) * 50}ms` }}
             >
               <item.icon className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
@@ -166,10 +167,10 @@ export function Sidebar() {
         {/* Footer */}
         <div className="border-t border-sidebar-border p-4">
           <div className="rounded-xl bg-sidebar-accent/50 p-3">
-            <p className="text-xs text-sidebar-muted">
+            <p className="text-xs font-medium text-sidebar-foreground">
               {profile?.full_name || "Usuario"}
             </p>
-            <p className="text-xs text-sidebar-muted">© 2026 Hormiwatch</p>
+            <p className="text-[10px] text-sidebar-muted mt-0.5">© 2026 Hormiwatch</p>
           </div>
         </div>
       </div>

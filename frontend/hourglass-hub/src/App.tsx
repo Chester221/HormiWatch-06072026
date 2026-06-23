@@ -6,7 +6,7 @@ import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import TechnicianDashboard from "./pages/TechnicianDashboard";  
-import ManagerDashboard from "./pages/Manager/DashboardMG";   
+import ManagerDashboard from "./pages/DashboardMG";   
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
 import Clients from "./pages/Clients";
@@ -15,10 +15,8 @@ import Services from "./pages/Services";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
-import Holidays from "./pages/Holidays";
-import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
-import AdminDashboard from "@/pages/Admin/AdminDashboard";
+import AdminDashboard from "@/pages/AdminDashboard";
 import { Button } from "@/components/ui/button";
 
 const queryClient = new QueryClient();
@@ -60,9 +58,55 @@ const RoleBasedDashboard = () => {
   const rawRole = profile?.role;
   const role = rawRole ? rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase() : null;
   
-  if (role === 'Manager') return <Navigate to="/gerencial" replace />;
+  // Manager Y Leader van al Dashboard Gerencial
+  if (role === 'Manager' || role === 'Leader') return <Navigate to="/gerencial" replace />;
   if (role === 'Admin') return <Navigate to="/control-usuarios" replace />;
   return <Navigate to="/dashboard" replace />;
+};
+
+// 🔥 Componente para BLOQUEAR acceso de Manager/Leader/Admin al dashboard de técnico
+const TechnicianDashboardGuard = () => {
+  const { profile } = useAuth();
+  const role = profile?.role;
+  
+  // Si es Manager, Leader o Admin, redirigir al dashboard gerencial
+  if (role === 'Manager' || role === 'Leader') {
+    return <Navigate to="/gerencial" replace />;
+  }
+  if (role === 'Admin') {
+    return <Navigate to="/control-usuarios" replace />;
+  }
+  
+  return <TechnicianDashboard />;
+};
+
+// 🔥 Componente para BLOQUEAR acceso de Admin al dashboard gerencial
+const ManagerDashboardGuard = () => {
+  const { profile } = useAuth();
+  const role = profile?.role;
+  
+  // Si es Admin, redirigir a su dashboard
+  if (role === 'Admin') {
+    return <Navigate to="/control-usuarios" replace />;
+  }
+  
+  return <ManagerDashboard />;
+};
+
+// 🔥 Componente para BLOQUEAR acceso de no-Admins al panel de admin
+const AdminDashboardGuard = () => {
+  const { profile } = useAuth();
+  const role = profile?.role;
+  
+  // Si NO es Admin, redirigir según su rol
+  if (role !== 'Admin') {
+    if (role === 'Manager' || role === 'Leader') {
+      return <Navigate to="/gerencial" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <AdminDashboard />;
 };
 
 const App = () => (
@@ -76,12 +120,22 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/" element={<RoleBasedDashboard />} />
+              
+              {/* 🔥 Dashboard técnico - BLOQUEADO para Manager/Leader/Admin */}
               <Route path="/dashboard" element={
-                <ProtectedRoute><TechnicianDashboard /></ProtectedRoute>
+                <ProtectedRoute><TechnicianDashboardGuard /></ProtectedRoute>
               } />
+              
+              {/* 🔥 Dashboard gerencial - BLOQUEADO para Admin */}
               <Route path="/gerencial" element={
-                <ProtectedRoute requiredRole={['Manager']}><ManagerDashboard /></ProtectedRoute>
+                <ProtectedRoute requiredRole={['Manager', 'Leader']}><ManagerDashboardGuard /></ProtectedRoute>
               } />
+              
+              {/* 🔥 Panel Admin - BLOQUEADO para no-Admins */}
+              <Route path="/control-usuarios" element={
+                <ProtectedRoute requiredRole={['Admin']}><AdminDashboardGuard /></ProtectedRoute>
+              } />
+              
               <Route path="/tasks" element={
                 <ProtectedRoute><Tasks /></ProtectedRoute>
               } />
@@ -92,25 +146,16 @@ const App = () => (
                 <ProtectedRoute><Settings /></ProtectedRoute>
               } />
               <Route path="/projects" element={
-                <ProtectedRoute requiredRole={['Manager', 'Admin', 'Technician']}><Projects /></ProtectedRoute>
+                <ProtectedRoute requiredRole={['Manager', 'Leader', 'Admin', 'Technician']}><Projects /></ProtectedRoute>
               } />
               <Route path="/clients" element={
-                <ProtectedRoute requiredRole={['Manager', 'Admin']}><Clients /></ProtectedRoute>
+                <ProtectedRoute requiredRole={['Manager', 'Leader', 'Admin']}><Clients /></ProtectedRoute>
               } />
               <Route path="/team" element={
-                <ProtectedRoute requiredRole={['Manager', 'Admin']}><Team /></ProtectedRoute>
+                <ProtectedRoute requiredRole={['Manager', 'Leader', 'Admin']}><Team /></ProtectedRoute>
               } />
               <Route path="/services" element={
-                <ProtectedRoute requiredRole={['Manager', 'Admin', 'Technician']}><Services /></ProtectedRoute>
-              } />
-              <Route path="/holidays" element={
-                <ProtectedRoute requiredRole={['Manager', 'Admin']}><Holidays /></ProtectedRoute>
-              } />
-              <Route path="/reports" element={
-                <ProtectedRoute requiredRole={['Manager', 'Admin']}><Reports /></ProtectedRoute>
-              } />
-              <Route path="/control-usuarios" element={
-                <ProtectedRoute requiredRole={['Admin']}><AdminDashboard /></ProtectedRoute>
+                <ProtectedRoute requiredRole={['Manager', 'Leader', 'Admin', 'Technician']}><Services /></ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
             </Routes>

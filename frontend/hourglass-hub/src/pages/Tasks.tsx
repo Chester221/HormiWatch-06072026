@@ -64,8 +64,6 @@ const Tasks = () => {
   const updateTaskMutation = useUpdateTask();
   const deleteTaskMutation = useDeleteTask();
 
-  const managerProjects = projectsList?.filter((p: any) => p.project_leader_id === user?.id) || [];
-
   const handleCreateTask = async (data: any) => {
     if (!canCreateTask) {
       toast.error("No tienes permisos para crear tareas");
@@ -142,13 +140,6 @@ const Tasks = () => {
     }
     
     setIsDeleting(true);
-    
-    if (justification) {
-      console.log('=== ELIMINACIÓN DE TAREA ===');
-      console.log('Tarea:', taskToDelete.title || taskToDelete.description);
-      console.log('Justificación:', justification);
-      console.log('Eliminado por:', user?.email, 'Rol:', userRole);
-    }
     
     deleteTaskMutation.mutate(taskToDelete.id, { 
       onSuccess: () => { 

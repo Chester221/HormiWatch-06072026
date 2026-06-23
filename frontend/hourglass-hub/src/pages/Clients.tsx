@@ -70,11 +70,6 @@ function ClientCard({ client, expandedClients, toggleClient, handleEditClient, h
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-medium text-muted-foreground">Contactos</h4>
-                  {client.address && (
-                    <a href={`https://www.google.com/maps/place/${encodeURIComponent(client.address)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors">
-                      <MapPin className="h-3 w-3" /> Maps
-                    </a>
-                  )}
                 </div>
                 {client.contacts.length === 0 ? (
                   <p className="text-sm text-muted-foreground italic">No hay contactos registrados</p>

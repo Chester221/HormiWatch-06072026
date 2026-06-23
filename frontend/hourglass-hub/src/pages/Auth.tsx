@@ -160,7 +160,10 @@ const Auth = () => {
         }
         return;
       }
-      toast.success("¡Cuenta creada! Ahora inicia sesión.");
+      
+      await supabase.auth.signOut();
+      
+      toast.success("¡Cuenta creada! Ya puedes iniciar sesión.");
       setSignupName("");
       setSignupEmail("");
       setSignupPassword("");

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, ReactNode 
 import { User, Session, AuthError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 
-export type UserRole = 'Technician' | 'Manager' | 'Admin' | 'Viewer'
+export type UserRole = 'Technician' | 'Manager' | 'Admin'
 
 export interface UserProfile {
     id: string
@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true)
     const [authError, setAuthError] = useState<string | null>(null)
 
+    // 🔥 SOLO Manager y Admin son "managers"
     const isManager = profile?.role === 'Manager' || profile?.role === 'Admin'
 
     const fetchProfile = useCallback(async (userId: string, userData?: User): Promise<UserProfile | null> => {
@@ -49,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
-                .single()
+                .maybeSingle()
 
             if (error) {
                 if (error.code === 'PGRST116' && userData) {
@@ -59,7 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         email: userData.email,
                         full_name: userData.user_metadata?.full_name || userData.email?.split('@')[0],
                         avatar_url: userData.user_metadata?.avatar_url,
-                        role: 'Viewer' as UserRole,
+                        role: 'Technician' as UserRole, // 🔥 ROL POR DEFECTO
+                        is_active: true,
                         updated_at: new Date().toISOString(),
                     };
 
@@ -150,49 +152,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // ═══════════════ REGISTRO SEGURO ═══════════════
     const signUp = async (email: string, password: string, metadata?: { full_name?: string }) => {
-        // Validar formato de email
         if (!email || !email.includes('@') || !email.includes('.')) {
             return { error: { message: 'Formato de email inválido' } as AuthError };
         }
-        // Validar contraseña
         if (!password || password.length < 6) {
             return { error: { message: 'La contraseña debe tener al menos 6 caracteres' } as AuthError };
         }
-        // Normalizar email
+        
         const cleanEmail = email.toLowerCase().trim();
-        // Verificar si ya existe en profiles
-        const { data: existingProfile } = await supabase.from('profiles').select('id').eq('email', cleanEmail).single();
-        if (existingProfile) {
-            return { error: { message: 'Este email ya está registrado. Inicia sesión.' } as AuthError };
-        }
-        // Registrar
+        
         const { data, error } = await supabase.auth.signUp({
             email: cleanEmail,
             password,
             options: { data: { full_name: metadata?.full_name?.trim() || cleanEmail.split('@')[0] } },
         });
+        
         if (error) {
-            if (error.message.includes('already registered') || error.message.includes('already exists')) {
+            if (error.message.includes('already registered')) {
                 return { error: { message: 'Este email ya está registrado. Inicia sesión.' } as AuthError };
             }
-            return { error };
+            if (error.status === 429) {
+                return { error: { message: 'Demasiados intentos. Espera un minuto.' } as AuthError };
+            }
+            return { error: { message: 'Error al crear la cuenta. Intenta de nuevo.' } as AuthError };
         }
-        // Crear perfil
+        
+        // 🔥 Crear perfil con rol Technician por defecto
         if (data?.user) {
             const { error: profileError } = await supabase.from('profiles').insert({
                 id: data.user.id,
                 email: cleanEmail,
                 full_name: metadata?.full_name?.trim() || cleanEmail.split('@')[0],
-                role: 'Viewer',
+                role: 'Technician', // 🔥 ROL POR DEFECTO
+                is_active: true,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             });
+            
             if (profileError) {
-                // Rollback: eliminar usuario auth si falla el perfil
-                await supabase.auth.admin.deleteUser(data.user.id);
-                return { error: { message: 'Error al crear el perfil. Intenta de nuevo.' } as AuthError };
+                console.error('Error creando perfil:', profileError);
             }
         }
+        
         return { error: null };
     }
 
@@ -233,7 +234,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
 
-    const value = { user, session, profile, loading, isManager, error: authError, signIn, signUp, signOut, updateProfile, uploadAvatar, refreshProfile: initializeAuth }
+    const value = { 
+        user, 
+        session, 
+        profile, 
+        loading, 
+        isManager, 
+        error: authError, 
+        signIn, 
+        signUp, 
+        signOut, 
+        updateProfile, 
+        uploadAvatar, 
+        refreshProfile: initializeAuth 
+    }
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
