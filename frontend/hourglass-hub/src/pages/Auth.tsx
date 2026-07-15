@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, Mail, Lock, User, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Clock, Mail, Lock, User, Eye, EyeOff, ArrowRight, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase/client";
@@ -13,11 +13,16 @@ import { supabase } from "@/lib/supabase/client";
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, profile, loading: authLoading, signIn, signUp } = useAuth();
+  const { user, profile, loading: authLoading, signIn, signUp, isCreatingUser, setCreatingUser } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
+  
+  // ✅ NUEVO: Flag para saber si estamos en proceso de registro
+  const [isSigningUp, setIsSigningUp] = useState(false);
+  // ✅ NUEVO: Referencia para saber si el registro fue exitoso
+  const signupSuccessRef = useRef(false);
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -27,60 +32,76 @@ const Auth = () => {
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
 
+  // ✅ MODIFICADO: useEffect con múltiples condiciones para evitar redirecciones
   useEffect(() => {
-  if (!authLoading && user && profile) {
-    console.log("=====================================");
-    console.log("🔍 Auth.tsx - user:", user?.id);
-    console.log("🔍 Auth.tsx - profile completo:", profile);
-    console.log("🔍 Auth.tsx - profile.role:", profile.role);
-    console.log("🔍 Auth.tsx - tipo de role:", typeof profile.role);
-    console.log("=====================================");
-    
-    // Verificar si el usuario está activo
-    if (profile.is_active === false) {
-      toast.error("Tu cuenta está desactivada. Contacta al administrador.");
-      supabase.auth.signOut();
+    // ✅ 1. NO redirigir si estamos en proceso de registro
+    if (isSigningUp) {
+      console.log("⏳ Proceso de registro activo, evitando redirección...");
       return;
     }
 
-    // Si viene de una ruta protegida
-    const from = (location.state as any)?.from?.pathname;
-    
-    if (from) {
-      console.log("🔍 Auth.tsx - Redirigiendo a ruta guardada:", from);
-      navigate(from, { replace: true });
+    // ✅ 2. NO redirigir si acabamos de crear un usuario (flag de AuthContext)
+    if (isCreatingUser) {
+      console.log("⏳ Usuario creado desde AdminDashboard, evitando redirección...");
       return;
     }
-    
-    // Normalizar rol
-    const rawRole = profile.role;
-    let normalizedRole = rawRole;
-    if (rawRole) {
-      normalizedRole = rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase();
+
+    // ✅ 3. NO redirigir si el registro fue exitoso (para evitar redirección después de signOut)
+    if (signupSuccessRef.current) {
+      console.log("✅ Registro exitoso, manteniendo en página de Auth...");
+      return;
     }
-    
-    console.log("🔍 Auth.tsx - Rol original:", rawRole, "→ Normalizado:", normalizedRole);
-    
-    // Redirección por rol
-    switch (normalizedRole) {
-      case 'Admin':
-        console.log("➡️ Redirigiendo a /control-usuarios");
-        navigate('/control-usuarios', { replace: true });
-        break;
-      case 'Manager':
-        console.log("➡️ Redirigiendo a /gerencial");
-        navigate('/gerencial', { replace: true });
-        break;
-      case 'Technician':
-        console.log("➡️ Redirigiendo a /dashboard");
-        navigate('/dashboard', { replace: true });
-        break;
-      default:
-        console.log("➡️ Redirigiendo a /dashboard (default)");
-        navigate('/dashboard', { replace: true });
+
+    // ✅ 4. Solo redirigir si estamos en la página de Auth y hay usuario
+    if (!authLoading && user && profile && location.pathname === '/auth') {
+      console.log("=====================================");
+      console.log("🔍 Auth.tsx - user:", user?.id);
+      console.log("🔍 Auth.tsx - profile.role:", profile.role);
+      console.log("=====================================");
+      
+      // Verificar si el usuario está activo
+      if (profile.is_active === false) {
+        toast.error("Tu cuenta está desactivada. Contacta al administrador.");
+        supabase.auth.signOut();
+        return;
+      }
+
+      // Si viene de una ruta protegida
+      const from = (location.state as any)?.from?.pathname;
+      
+      if (from) {
+        console.log("🔍 Auth.tsx - Redirigiendo a ruta guardada:", from);
+        navigate(from, { replace: true });
+        return;
+      }
+      
+      // Normalizar rol
+      const rawRole = profile.role;
+      let normalizedRole = rawRole;
+      if (rawRole) {
+        normalizedRole = rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase();
+      }
+      
+      // Redirección por rol (SOLO para LOGIN manual)
+      switch (normalizedRole) {
+        case 'Admin':
+          console.log("➡️ Redirigiendo a /control-usuarios");
+          navigate('/control-usuarios', { replace: true });
+          break;
+        case 'Manager':
+          console.log("➡️ Redirigiendo a /gerencial");
+          navigate('/gerencial', { replace: true });
+          break;
+        case 'Technician':
+          console.log("➡️ Redirigiendo a /dashboard");
+          navigate('/dashboard', { replace: true });
+          break;
+        default:
+          console.log("➡️ Redirigiendo a /dashboard (default)");
+          navigate('/dashboard', { replace: true });
+      }
     }
-  }
-}, [user, profile, authLoading, navigate, location]);
+  }, [user, profile, authLoading, navigate, location, isSigningUp, isCreatingUser]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +111,6 @@ const Auth = () => {
     }
     setIsLoading(true);
     try {
-      // 1. Intentar login en Supabase Auth
       const { data, error } = await signIn(loginEmail, loginPassword);
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
@@ -103,7 +123,6 @@ const Auth = () => {
         return;
       }
 
-      // 2. Verificar si el usuario está activo en la tabla profiles
       if (data?.user) {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -118,14 +137,12 @@ const Auth = () => {
           return;
         }
 
-        // 3. Si está inactivo, cerrar sesión y mostrar error
         if (profileData?.is_active === false) {
           await supabase.auth.signOut();
           toast.error("Tu cuenta está desactivada. Contacta al administrador.");
           return;
         }
 
-        // 4. Si está activo, continuar
         toast.success("¡Bienvenido de nuevo!");
       }
     } catch (error: any) {
@@ -135,8 +152,11 @@ const Auth = () => {
     }
   };
 
+  // ✅ MODIFICADO: handleSignup mejorado
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validaciones
     if (!signupName || !signupEmail || !signupPassword) {
       toast.error("Por favor completa todos los campos");
       return;
@@ -149,28 +169,56 @@ const Auth = () => {
       toast.error("La contraseña debe tener al menos 6 caracteres");
       return;
     }
+    
+    // ✅ Marcar que estamos en proceso de registro
+    setIsSigningUp(true);
     setIsLoading(true);
+    
     try {
+      // 1. Crear el usuario
       const { error } = await signUp(signupEmail, signupPassword, { full_name: signupName });
+      
       if (error) {
         if (error.message.includes("already registered")) {
           toast.error("Este email ya está registrado. Inicia sesión.");
         } else {
           toast.error(error.message);
         }
+        setIsSigningUp(false);
         return;
       }
       
+      // 2. ✅ CERRAR SESIÓN INMEDIATAMENTE (esto evita que el useEffect redirija)
       await supabase.auth.signOut();
       
-      toast.success("¡Cuenta creada! Ya puedes iniciar sesión.");
+      // 3. ✅ Marcar que el registro fue exitoso
+      signupSuccessRef.current = true;
+      
+      // 4. ✅ Mostrar toast de éxito
+      toast.success("¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.", {
+        icon: <CheckCircle className="h-5 w-5 text-emerald-500" />,
+        duration: 5000,
+      });
+      
+      // 5. ✅ Limpiar el formulario
       setSignupName("");
       setSignupEmail("");
       setSignupPassword("");
       setSignupConfirmPassword("");
+      
+      // 6. ✅ Cambiar a la pestaña de login
       setActiveTab("login");
+      
+      // 7. ✅ Limpiar el flag después de un momento (para que el useEffect pueda redirigir en futuros logins)
+      setTimeout(() => {
+        signupSuccessRef.current = false;
+        setIsSigningUp(false);
+      }, 500);
+      
     } catch (error: any) {
-      toast.error("Error al crear la cuenta.");
+      console.error("Error en registro:", error);
+      toast.error("Error al crear la cuenta. Intenta de nuevo.");
+      setIsSigningUp(false);
     } finally {
       setIsLoading(false);
     }
@@ -186,6 +234,7 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
+      {/* Lado izquierdo - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-sidebar relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-72 h-72 rounded-full bg-primary blur-3xl" />
@@ -215,6 +264,7 @@ const Auth = () => {
         </div>
       </div>
 
+      {/* Lado derecho - Formulario */}
       <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-3 mb-8 lg:hidden justify-center">
@@ -228,8 +278,12 @@ const Auth = () => {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <CardHeader className="pb-4">
                 <TabsList className="grid w-full grid-cols-2 bg-muted">
-                  <TabsTrigger value="login" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">Iniciar Sesión</TabsTrigger>
-                  <TabsTrigger value="signup" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">Registrarse</TabsTrigger>
+                  <TabsTrigger value="login" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                    Iniciar Sesión
+                  </TabsTrigger>
+                  <TabsTrigger value="signup" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                    Registrarse
+                  </TabsTrigger>
                 </TabsList>
               </CardHeader>
 
@@ -276,7 +330,11 @@ const Auth = () => {
                       </div>
                     </div>
                     <Button type="submit" className="w-full gap-2 shadow-glow" disabled={isLoading}>
-                      {isLoading ? <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : <>Entrar <ArrowRight className="h-4 w-4" /></>}
+                      {isLoading ? (
+                        <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      ) : (
+                        <>Entrar <ArrowRight className="h-4 w-4" /></>
+                      )}
                     </Button>
                   </form>
                 </CardContent>
@@ -351,8 +409,12 @@ const Auth = () => {
                         />
                       </div>
                     </div>
-                    <Button type="submit" className="w-full gap-2 shadow-glow" disabled={isLoading}>
-                      {isLoading ? <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : <>Crear Cuenta <ArrowRight className="h-4 w-4" /></>}
+                    <Button type="submit" className="w-full gap-2 shadow-glow" disabled={isLoading || isSigningUp}>
+                      {isLoading ? (
+                        <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      ) : (
+                        <>Crear Cuenta <ArrowRight className="h-4 w-4" /></>
+                      )}
                     </Button>
                     <p className="text-xs text-center text-muted-foreground">
                       Al crear una cuenta, aceptas nuestros <button type="button" className="text-primary hover:underline">Términos</button> y <button type="button" className="text-primary hover:underline">Privacidad</button>

@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-    const { user, profile, loading } = useAuth()
+    const { user, profile, loading, isCreatingUser } = useAuth()  // ✅ AGREGADO isCreatingUser
     const location = useLocation()
 
     if (loading) {
@@ -23,8 +23,15 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
         )
     }
 
+    // ✅ Si NO hay usuario, redirigir al login
     if (!user) {
         return <Navigate to="/auth" state={{ from: location }} replace />
+    }
+
+    // ✅ NUEVO: Si estamos CREANDO usuario, permitir acceso sin verificar rol
+    // Esto evita redirecciones durante la creación de usuarios desde AdminDashboard
+    if (isCreatingUser) {
+        return <>{children}</>
     }
 
     // ✅ Normalizar el rol del usuario (primera letra mayúscula)

@@ -14,6 +14,10 @@ import { motion } from "framer-motion";
 
 const HORMI_BLUE = '#0DA2E7';
 
+// Configuración de Supabase
+const SUPABASE_URL = 'https://tniprkdojqzpicukqvbe.supabase.co';
+const SERVICE_ROLE_KEY = 'sb_secret_j18764VUjLBMIjujWbTdqzA_nQJMzmaM';
+
 interface AddUserModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -36,9 +40,15 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
   const [errors, setErrors] = useState({ fullName: "", email: "", password: "" });
 
   const resetForm = () => {
-    setEmail(""); setPassword(""); setFullName(""); setRole("Technician");
-    setPhone("+58 "); setCedula(""); setCedulaType("V");
-    setAvatarPreview(null); setAvatarFile(null);
+    setEmail(""); 
+    setPassword(""); 
+    setFullName(""); 
+    setRole("Technician");
+    setPhone("+58 "); 
+    setCedula(""); 
+    setCedulaType("V");
+    setAvatarPreview(null); 
+    setAvatarFile(null);
     setErrors({ fullName: "", email: "", password: "" });
   };
 
@@ -76,7 +86,10 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { toast.error("Máximo 5MB"); return; }
+      if (file.size > 5 * 1024 * 1024) { 
+        toast.error("Máximo 5MB"); 
+        return; 
+      }
       setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setAvatarPreview(reader.result as string);
@@ -86,63 +99,170 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
 
   const getRoleInfo = (r: string) => {
     switch (r) {
-      case 'Admin': return { icon: Settings2, color: '#f59e0b', bg: 'bg-amber-50', text: 'text-amber-700', label: 'Administrador' };
-      case 'Manager': return { icon: Briefcase, color: '#3b82f6', bg: 'bg-blue-50', text: 'text-blue-700', label: 'Manager' };
-      case 'Technician': return { icon: Wrench, color: HORMI_BLUE, bg: 'bg-sky-50', text: 'text-sky-700', label: 'Técnico' };
-      default: return { icon: User, color: '#6b7280', bg: 'bg-gray-50', text: 'text-gray-700', label: r };
+      case 'Admin': 
+        return { 
+          icon: Settings2, 
+          color: '#f59e0b', 
+          bg: 'bg-amber-50', 
+          text: 'text-amber-700', 
+          label: 'Administrador',
+          description: 'Acceso total al sistema. Puede gestionar usuarios, visualizar proyectos, clientes y configurar la plataforma.'
+        };
+      case 'Manager': 
+        return { 
+          icon: Briefcase, 
+          color: '#3b82f6', 
+          bg: 'bg-blue-50', 
+          text: 'text-blue-700', 
+          label: 'Manager',
+          description: 'Gestiona proyectos, equipos de trabajo y clientes. Puede ver reportes y estadísticas del equipo.'
+        };
+      case 'Technician': 
+        return { 
+          icon: Wrench, 
+          color: HORMI_BLUE, 
+          bg: 'bg-sky-50', 
+          text: 'text-sky-700', 
+          label: 'Técnico',
+          description: 'Registra horas trabajadas, completa tareas asignadas.'
+        };
+      default: 
+        return { 
+          icon: User, 
+          color: '#6b7280', 
+          bg: 'bg-gray-50', 
+          text: 'text-gray-700', 
+          label: r,
+          description: ''
+        };
     }
   };
 
+  // ✅ HANDLE SUBMIT MODIFICADO - Usa Admin API para NO auto-login
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validaciones
     const newErrors = { fullName: "", email: "", password: "" };
     let hasError = false;
-    if (!fullName.trim()) { newErrors.fullName = "Requerido"; hasError = true; }
-    if (!email.trim() || !validateEmail(email)) { newErrors.email = "Email inválido"; hasError = true; }
-    if (!password.trim() || password.length < 6) { newErrors.password = "Mínimo 6 caracteres"; hasError = true; }
+    
+    if (!fullName.trim()) { 
+      newErrors.fullName = "Requerido"; 
+      hasError = true; 
+    }
+    if (!email.trim() || !validateEmail(email)) { 
+      newErrors.email = "Email inválido"; 
+      hasError = true; 
+    }
+    if (!password.trim() || password.length < 6) { 
+      newErrors.password = "Mínimo 6 caracteres"; 
+      hasError = true; 
+    }
+    
     setErrors(newErrors);
-    if (hasError) { toast.error("Corrige los errores"); return; }
+    if (hasError) { 
+      toast.error("Corrige los errores"); 
+      return; 
+    }
 
     setIsSubmitting(true);
+    
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email, password, options: { data: { full_name: fullName } }
+      // 1. 🔥 CREAR USUARIO EN AUTH.USERS USANDO ADMIN API (NO inicia sesión automáticamente)
+      const createResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+        method: 'POST',
+        headers: {
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          email_confirm: true,
+          user_metadata: { 
+            full_name: fullName,
+            role: role
+          }
+        })
       });
-      if (authError) {
-        if (authError.message.includes('already registered')) throw new Error('Email ya registrado');
-        if ((authError as any).status === 429) throw new Error('Demasiados intentos');
-        throw authError;
-      }
-      if (!authData?.user) throw new Error('No se pudo crear');
 
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json();
+        console.error('Error creating user:', errorData);
+        
+        if (errorData.msg?.toLowerCase().includes('already registered') || 
+            errorData.message?.toLowerCase().includes('already registered')) {
+          throw new Error('Email ya registrado');
+        }
+        throw new Error(errorData.msg || errorData.message || 'Error al crear usuario');
+      }
+
+      const newUser = await createResponse.json();
+      const userId = newUser.id;
+
+      // 2. SUBIR AVATAR (si hay)
       let avatarUrl = null;
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
-        const { error: upErr } = await supabase.storage.from('avatars').upload(`${authData.user.id}-${Date.now()}.${fileExt}`, avatarFile, { upsert: true });
-        if (!upErr) {
-          const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(`${authData.user.id}-${Date.now()}.${fileExt}`);
+        const fileName = `${userId}-${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, avatarFile, { upsert: true });
+        
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
           avatarUrl = publicUrl;
+        } else {
+          console.warn('Error uploading avatar:', uploadError);
         }
       }
 
+      // 3. CREAR PERFIL EN PROFILES
       const phoneValue = phone.length > 4 ? phone : null;
-      const { error: updErr } = await supabase.from("profiles").update({
-        full_name: fullName, role, phone: phoneValue, cedula: cedula || null,
-        is_active: true, avatar_url: avatarUrl, updated_at: new Date().toISOString(),
-      }).eq("id", authData.user.id);
-
-      if (updErr) {
-        await supabase.from("profiles").insert({
-          id: authData.user.id, email, full_name: fullName, role,
-          phone: phoneValue, cedula: cedula || null, avatar_url: avatarUrl,
-          is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      const cedulaValue = cedula ? `${cedulaType}${cedula}` : null;
+      
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: userId,
+          email: email,
+          full_name: fullName,
+          role: role,
+          phone: phoneValue,
+          cedula: cedulaValue,
+          avatar_url: avatarUrl,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         });
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+        
+        // Si falla el perfil, eliminar el usuario de auth para limpiar
+        await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
+          }
+        });
+        
+        throw new Error('Error al crear el perfil del usuario: ' + profileError.message);
       }
 
-      toast.success(`¡${fullName} creado!`);
-      resetForm(); onSuccess?.(); onOpenChange(false);
+      // ✅ ÉXITO - Sin redirección, solo cerrar modal
+      toast.success(`¡${fullName} creado exitosamente!`);
+      resetForm();
+      onSuccess?.(); // Actualizar lista de usuarios
+      onOpenChange(false); // Cerrar modal
+      
     } catch (error: any) {
-      toast.error(error.message);
+      console.error('Error en handleSubmit:', error);
+      toast.error(error.message || 'Error al crear usuario');
     } finally {
       setIsSubmitting(false);
     }
@@ -152,7 +272,10 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
   const RoleIcon = roleInfo.icon;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) resetForm(); onOpenChange(o); }}>
+    <Dialog open={open} onOpenChange={(o) => { 
+      if (!o) resetForm(); 
+      onOpenChange(o); 
+    }}>
       <DialogContent className="max-w-md bg-card border-border p-0 rounded-2xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header compacto */}
         <div className="relative p-4 bg-gradient-to-r from-[#0DA2E7]/15 via-[#0DA2E7]/5 to-transparent border-b border-border">
@@ -164,7 +287,9 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
               <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-1.5">
                 Nuevo Usuario
               </DialogTitle>
-              <DialogDescription className="text-[11px] text-muted-foreground">Crear cuenta de usuario</DialogDescription>
+              <DialogDescription className="text-[11px] text-muted-foreground">
+                Crear cuenta de usuario
+              </DialogDescription>
             </div>
           </div>
         </div>
@@ -181,14 +306,28 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
               </Avatar>
               <label className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#0DA2E7] text-white cursor-pointer hover:bg-[#0B8BC7] transition-colors shadow-lg">
                 <Camera className="h-3 w-3" />
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                <input 
+                  ref={fileInputRef} 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleAvatarChange} 
+                  className="hidden" 
+                />
               </label>
             </div>
             <div className="flex-1">
               <Label className="text-[11px] font-medium flex items-center gap-1 mb-1">
                 <User className="h-3 w-3 text-muted-foreground" /> Nombre *
               </Label>
-              <Input value={fullName} onChange={e => { setFullName(e.target.value); setErrors(prev => ({ ...prev, fullName: "" })); }} placeholder="Juan Pérez" className={`bg-muted/30 border-border h-9 rounded-lg text-sm ${errors.fullName ? 'border-red-500' : ''}`} />
+              <Input 
+                value={fullName} 
+                onChange={e => { 
+                  setFullName(e.target.value); 
+                  setErrors(prev => ({ ...prev, fullName: "" })); 
+                }} 
+                placeholder="Juan Pérez" 
+                className={`bg-muted/30 border-border h-9 rounded-lg text-sm ${errors.fullName ? 'border-red-500' : ''}`} 
+              />
               {errors.fullName && <p className="text-[10px] text-red-500 mt-0.5">{errors.fullName}</p>}
             </div>
           </div>
@@ -199,14 +338,26 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
               <Label className="text-[11px] font-medium flex items-center gap-1 mb-1">
                 <Mail className="h-3 w-3 text-muted-foreground" /> Email *
               </Label>
-              <Input type="email" value={email} onChange={handleEmailChange} placeholder="usuario@email.com" className={`bg-muted/30 border-border h-9 rounded-lg text-sm ${errors.email ? 'border-red-500' : ''}`} />
+              <Input 
+                type="email" 
+                value={email} 
+                onChange={handleEmailChange} 
+                placeholder="usuario@email.com" 
+                className={`bg-muted/30 border-border h-9 rounded-lg text-sm ${errors.email ? 'border-red-500' : ''}`} 
+              />
               {errors.email && <p className="text-[10px] text-red-500 mt-0.5">{errors.email}</p>}
             </div>
             <div>
               <Label className="text-[11px] font-medium flex items-center gap-1 mb-1">
                 <Key className="h-3 w-3 text-muted-foreground" /> Contraseña *
               </Label>
-              <Input type="password" value={password} onChange={handlePasswordChange} placeholder="Mínimo 6" className={`bg-muted/30 border-border h-9 rounded-lg text-sm ${errors.password ? 'border-red-500' : ''}`} />
+              <Input 
+                type="password" 
+                value={password} 
+                onChange={handlePasswordChange} 
+                placeholder="Mínimo 6" 
+                className={`bg-muted/30 border-border h-9 rounded-lg text-sm ${errors.password ? 'border-red-500' : ''}`} 
+              />
               {errors.password && <p className="text-[10px] text-red-500 mt-0.5">{errors.password}</p>}
             </div>
           </div>
@@ -218,11 +369,25 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
                 <Shield className="h-3 w-3 text-muted-foreground" /> Rol *
               </Label>
               <Select value={role} onValueChange={setRole}>
-                <SelectTrigger className="bg-muted/30 border-border h-9 rounded-lg text-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-muted/30 border-border h-9 rounded-lg text-sm">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent className="bg-card border-border">
-                  <SelectItem value="Admin"><span className="flex items-center gap-2 text-sm"><Settings2 className="h-3.5 w-3.5 text-amber-500" /> Admin</span></SelectItem>
-                  <SelectItem value="Manager"><span className="flex items-center gap-2 text-sm"><Briefcase className="h-3.5 w-3.5 text-blue-500" /> Manager</span></SelectItem>
-                  <SelectItem value="Technician"><span className="flex items-center gap-2 text-sm"><Wrench className="h-3.5 w-3.5 text-sky-500" /> Técnico</span></SelectItem>
+                  <SelectItem value="Admin">
+                    <span className="flex items-center gap-2 text-sm">
+                      <Settings2 className="h-3.5 w-3.5 text-amber-500" /> Admin
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="Manager">
+                    <span className="flex items-center gap-2 text-sm">
+                      <Briefcase className="h-3.5 w-3.5 text-blue-500" /> Manager
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="Technician">
+                    <span className="flex items-center gap-2 text-sm">
+                      <Wrench className="h-3.5 w-3.5 text-sky-500" /> Técnico
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -230,7 +395,12 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
               <Label className="text-[11px] font-medium flex items-center gap-1 mb-1">
                 <Phone className="h-3 w-3 text-muted-foreground" /> Teléfono (Opcional)
               </Label>
-              <Input value={phone} onChange={handlePhoneChange} placeholder="+58 412 413 4891" className="bg-muted/30 border-border h-9 rounded-lg text-sm font-mono" />
+              <Input 
+                value={phone} 
+                onChange={handlePhoneChange} 
+                placeholder="+58 412 413 4891" 
+                className="bg-muted/30 border-border h-9 rounded-lg text-sm font-mono" 
+              />
             </div>
           </div>
 
@@ -241,41 +411,62 @@ export function AddUserModal({ open, onOpenChange, onSuccess }: AddUserModalProp
             </Label>
             <div className="flex gap-2">
               <Select value={cedulaType} onValueChange={setCedulaType}>
-                <SelectTrigger className="w-16 bg-muted/30 border-border h-9 rounded-lg text-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-16 bg-muted/30 border-border h-9 rounded-lg text-sm">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   <SelectItem value="V">V</SelectItem>
                   <SelectItem value="E">E</SelectItem>
                 </SelectContent>
               </Select>
-              <Input value={cedula.replace(/[^\d]/g, "")} onChange={e => setCedula(e.target.value.replace(/[^\d]/g, "").slice(0, 8) ? `${cedulaType}${e.target.value.replace(/[^\d]/g, "").slice(0, 8)}` : "")} placeholder="12345678" className="bg-muted/30 border-border h-9 rounded-lg text-sm flex-1" inputMode="numeric" />
+              <Input 
+                value={cedula} 
+                onChange={e => setCedula(e.target.value.replace(/[^\d]/g, "").slice(0, 8))} 
+                placeholder="12345678" 
+                className="bg-muted/30 border-border h-9 rounded-lg text-sm flex-1" 
+                inputMode="numeric" 
+              />
             </div>
           </div>
 
-          {/* Preview del rol*/}
-<motion.div 
-  key={role} 
-  initial={{ opacity: 0, y: 5 }} 
-  animate={{ opacity: 1, y: 0 }}
-  className={`p-3 rounded-xl border ${roleInfo.bg} border-border/50`}
->
-  <div className="flex items-center gap-2.5 mb-2">
-    <div className="p-1.5 rounded-lg" style={{ backgroundColor: roleInfo.color + '20' }}>
-      <RoleIcon className="h-4 w-4" style={{ color: roleInfo.color }} />
-    </div>
-    <p className={`text-sm font-semibold ${roleInfo.text}`}>{roleInfo.label}</p>
-  </div>
-  <p className="text-[11px] text-muted-foreground leading-relaxed">
-    {role === 'Admin' && 'Acceso total al sistema. Puede gestionar usuarios, visualizar proyectos, clientes y configurar la plataforma.'}
-    {role === 'Manager' && 'Gestiona proyectos, equipos de trabajo y clientes. Puede ver reportes y estadísticas del equipo.'}
-    {role === 'Technician' && 'Registra horas trabajadas, completa tareas asignadas.'}
-  </p>
-</motion.div>
+          {/* Preview del rol */}
+          <motion.div 
+            key={role} 
+            initial={{ opacity: 0, y: 5 }} 
+            animate={{ opacity: 1, y: 0 }}
+            className={`p-3 rounded-xl border ${roleInfo.bg} border-border/50`}
+          >
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="p-1.5 rounded-lg" style={{ backgroundColor: roleInfo.color + '20' }}>
+                <RoleIcon className="h-4 w-4" style={{ color: roleInfo.color }} />
+              </div>
+              <p className={`text-sm font-semibold ${roleInfo.text}`}>{roleInfo.label}</p>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              {roleInfo.description}
+            </p>
+          </motion.div>
 
           {/* Footer */}
           <DialogFooter className="gap-2 pt-1">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-lg h-9 px-3 text-xs border-border flex-1">Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting} className="rounded-lg h-9 px-3 gap-1.5 text-white text-xs flex-1" style={{ backgroundColor: HORMI_BLUE }}>
-              {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)} 
+              className="rounded-lg h-9 px-3 text-xs border-border flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting} 
+              className="rounded-lg h-9 px-3 gap-1.5 text-white text-xs flex-1" 
+              style={{ backgroundColor: HORMI_BLUE }}
+            >
+              {isSubmitting ? 
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 
+                <CheckCircle className="h-3.5 w-3.5" />
+              }
               {isSubmitting ? "Creando..." : "Crear Usuario"}
             </Button>
           </DialogFooter>
